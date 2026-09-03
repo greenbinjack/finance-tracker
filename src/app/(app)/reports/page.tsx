@@ -147,17 +147,24 @@ export default async function ReportsPage({
   const balanceTo = to > today ? today : to;
   const filters = { accountId, eventId };
 
-  const [profile, accounts, events, breakdown, trend, balanceTrend, dailyExpenses, periodSummary] =
-    await Promise.all([
-      getProfile(),
-      listAccounts(),
-      listEvents(),
-      getCategoryBreakdown(from, to, breakdownType, filters),
-      getIncomeExpenseTrend(from, to, granularity, filters),
-      getBalanceTrend(from, balanceTo, granularity, filters),
-      getDailyExpenses(dailyFrom, dailyTo, filters),
-      getPeriodSummary(from, to, filters),
-    ]);
+  // Two smaller batches rather than one 8-way Promise.all — bursting that
+  // many simultaneous new connections to Supabase at once was found to
+  // occasionally stall for 10+ seconds (same root cause as the dashboard's
+  // get_dashboard_data fix). Halving peak concurrency avoids it without
+  // needing this page's very differently-shaped queries (several date
+  // ranges, optional filters) consolidated into one RPC.
+  const [profile, accounts, events, periodSummary] = await Promise.all([
+    getProfile(),
+    listAccounts(),
+    listEvents(),
+    getPeriodSummary(from, to, filters),
+  ]);
+  const [breakdown, trend, balanceTrend, dailyExpenses] = await Promise.all([
+    getCategoryBreakdown(from, to, breakdownType, filters),
+    getIncomeExpenseTrend(from, to, granularity, filters),
+    getBalanceTrend(from, balanceTo, granularity, filters),
+    getDailyExpenses(dailyFrom, dailyTo, filters),
+  ]);
 
   const previousPeriodSummary =
     rangeKey === "all"

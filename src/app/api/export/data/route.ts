@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { format } from "date-fns";
+import { decryptField } from "@/lib/crypto/field-encryption";
 
 export async function GET() {
   const supabase = await createClient();
@@ -46,7 +47,14 @@ export async function GET() {
     exported_at: new Date().toISOString(),
     user: { id: user.id, email: user.email },
     profile: profile.data,
-    accounts: accounts.data ?? [],
+    // account_number/card_number are stored encrypted (once a key is set) —
+    // this is the user's own data export, so it should read like the app
+    // itself, not leak ciphertext into their backup file.
+    accounts: (accounts.data ?? []).map((a) => ({
+      ...a,
+      account_number: decryptField(a.account_number),
+      card_number: decryptField(a.card_number),
+    })),
     categories: categories.data ?? [],
     transactions: transactions.data ?? [],
     // Not every account has run the transaction_splits migration yet — an

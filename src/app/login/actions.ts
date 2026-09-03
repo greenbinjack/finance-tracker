@@ -22,7 +22,7 @@ export async function signUp(formData: FormData) {
   const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
 
-  if (password.length < 6) redirectWithError("Password must be at least 6 characters");
+  if (password.length < 8) redirectWithError("Password must be at least 8 characters");
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({ email, password });

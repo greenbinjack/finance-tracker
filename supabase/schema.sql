@@ -595,3 +595,115 @@ create policy "receipts: owner update" on storage.objects for update
 drop policy if exists "receipts: owner delete" on storage.objects;
 create policy "receipts: owner delete" on storage.objects for delete
   using (bucket_id = 'receipts' and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- ============================================================
+-- Dashboard, consolidated into one round trip. The dashboard used to fire 9
+-- independent Supabase queries in parallel (profile, month summary, recent
+-- transactions, account balances, investment summary, loan net effect, loan
+-- reminders, categories, recurring-detection history) — functionally fine,
+-- but 9 simultaneous new HTTPS connections to the same host turned out to be
+-- enough to occasionally blow past a ~10s connect timeout under real-world
+-- network conditions (found via direct measurement, reproduced with a bare
+-- Node script hitting the same endpoint — nothing Supabase- or app-specific,
+-- just a burst-of-concurrent-connections problem). Same fix as
+-- get_event_detail below: one function call, raw rows only — the actual
+-- math (balances, summaries, urgency, recurring detection) stays in the
+-- existing pure TypeScript domain functions, unchanged.
+-- security invoker, so every subquery is still governed by that table's own
+-- RLS policy exactly as if each had been queried separately.
+-- ============================================================
+create or replace function public.get_dashboard_data(p_month_start date, p_month_end date)
+returns jsonb
+language sql
+security invoker
+stable
+as $$
+  select jsonb_build_object(
+    'profile', (
+      select to_jsonb(pr) from profiles pr where pr.id = auth.uid()
+    ),
+    'month_transactions', (
+      select coalesce(jsonb_agg(jsonb_build_object('type', t.type, 'amount', t.amount)), '[]'::jsonb)
+      from transactions t
+      where t.in_personal_history = true
+        and t.type <> 'transfer'
+        and t.occurred_on >= p_month_start
+        and t.occurred_on <= p_month_end
+    ),
+    'recent_transactions', (
+      select coalesce(jsonb_agg(row_to_json(x) order by x.occurred_on desc, x.created_at desc), '[]'::jsonb)
+      from (
+        select
+          t.*,
+          case when c.id is not null then jsonb_build_object('name', c.name, 'icon', c.icon) else null end as categories,
+          case when a.id is not null then jsonb_build_object('name', a.name) else null end as accounts,
+          case when e.id is not null then jsonb_build_object('name', e.name) else null end as events
+        from transactions t
+        left join categories c on c.id = t.category_id
+        left join accounts a on a.id = t.account_id
+        left join events e on e.id = t.event_id
+        where t.in_personal_history = true
+        order by t.occurred_on desc, t.created_at desc
+        limit 6
+      ) x
+    ),
+    'balance_accounts', (
+      select coalesce(jsonb_agg(jsonb_build_object('id', a.id, 'name', a.name) order by a.name asc), '[]'::jsonb)
+      from accounts a
+    ),
+    'balance_transactions', (
+      select coalesce(
+        jsonb_agg(jsonb_build_object(
+          'account_id', t.account_id, 'to_account_id', t.to_account_id, 'type', t.type, 'amount', t.amount
+        )),
+        '[]'::jsonb
+      )
+      from transactions t
+      where t.in_personal_history = true
+    ),
+    'investments', (
+      select coalesce(
+        jsonb_agg(jsonb_build_object('amount_invested', i.amount_invested, 'current_value', i.current_value)),
+        '[]'::jsonb
+      )
+      from investments i
+    ),
+    'loans', (
+      select coalesce(
+        jsonb_agg(jsonb_build_object(
+          'id', l.id,
+          'person_name', l.person_name,
+          'direction', l.direction,
+          'principal_amount', l.principal_amount,
+          'due_date', l.due_date,
+          'status', l.status,
+          'loan_payments', (
+            select coalesce(jsonb_agg(jsonb_build_object('amount', lp.amount)), '[]'::jsonb)
+            from loan_payments lp where lp.loan_id = l.id
+          )
+        )),
+        '[]'::jsonb
+      )
+      from loans l
+    ),
+    'categories', (
+      select coalesce(jsonb_agg(row_to_json(c) order by c.name asc), '[]'::jsonb)
+      from categories c
+    ),
+    'recent_expenses', (
+      select coalesce(
+        jsonb_agg(jsonb_build_object(
+          'category_id', t.category_id, 'account_id', t.account_id, 'amount', t.amount,
+          'occurred_on', t.occurred_on, 'note', t.note
+        )),
+        '[]'::jsonb
+      )
+      from transactions t
+      where t.type = 'expense'
+        and t.in_personal_history = true
+        and t.occurred_on >= (current_date - interval '6 months')::date
+    )
+  )
+$$;
+
+grant execute on function public.get_dashboard_data(date, date) to authenticated;

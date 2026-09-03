@@ -478,6 +478,10 @@ export interface Database {
         Args: { p_token: string };
         Returns: Json;
       };
+      get_dashboard_data: {
+        Args: { p_month_start: string; p_month_end: string };
+        Returns: Json;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;

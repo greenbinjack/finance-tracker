@@ -8,16 +8,7 @@ import { TransactionRow } from "@/components/transaction-row";
 import { HideableBalance } from "@/components/hideable-balance";
 import { LoanReminderBanner } from "@/components/loan-reminder-banner";
 import { RecurringSuggestionsBanner } from "@/components/recurring-suggestions-banner";
-import {
-  getDashboardSummary,
-  listTransactions,
-  listRecentExpensesForRecurringDetection,
-} from "@/lib/services/transactions";
-import { getAccountBalances } from "@/lib/services/accounts";
-import { getInvestmentSummary } from "@/lib/services/investments";
-import { getLoanNetEffect, listLoanReminders } from "@/lib/services/loans";
-import { getProfile } from "@/lib/services/profile";
-import { listCategories } from "@/lib/services/categories";
+import { getDashboardData } from "@/lib/services/dashboard";
 import { formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { detectRecurringTransactions } from "@/lib/domain/recurring";
@@ -27,18 +18,17 @@ export default async function DashboardPage() {
   const monthStart = format(startOfMonth(now), "yyyy-MM-dd");
   const monthEnd = format(endOfMonth(now), "yyyy-MM-dd");
 
-  const [profile, summary, { transactions }, balances, investmentSummary, loanNet, loanReminders, categories, recentExpenses] =
-    await Promise.all([
-      getProfile(),
-      getDashboardSummary(monthStart, monthEnd),
-      listTransactions({ pageSize: 6 }),
-      getAccountBalances(),
-      getInvestmentSummary(),
-      getLoanNetEffect(),
-      listLoanReminders(),
-      listCategories(),
-      listRecentExpensesForRecurringDetection(),
-    ]);
+  const {
+    profile,
+    summary,
+    transactions,
+    balances,
+    investmentSummary,
+    loanNet,
+    loanReminders,
+    categories,
+    recentExpenses,
+  } = await getDashboardData(monthStart, monthEnd);
 
   const currency = profile?.currency ?? "BDT";
   const accountNameById = new Map(balances.accounts.map((a) => [a.id, a.name]));
