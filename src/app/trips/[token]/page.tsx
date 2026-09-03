@@ -63,10 +63,21 @@ export default async function SharedTripPage({ params }: { params: Promise<{ tok
                 {byDay.get(day)!.map((item) => (
                   <div key={item.id} className="flex items-start gap-3 py-1">
                     {item.time && <span className="w-14 shrink-0 text-xs tabular-nums text-muted-foreground">{item.time}</span>}
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium">{item.title}</p>
                       {item.notes && <p className="text-xs text-muted-foreground">{item.notes}</p>}
                     </div>
+                    {item.location && (
+                      <a
+                        href={mapSearchUrl(item.location)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={`View ${item.title} on map`}
+                        className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                      >
+                        <MapPin className="h-3.5 w-3.5" />
+                      </a>
+                    )}
                   </div>
                 ))}
               </div>

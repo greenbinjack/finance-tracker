@@ -17,10 +17,16 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - run: npm ci
+
+      # tsc alone would fail here: Next.js's own ambient types (LayoutProps
+      # and friends) only exist once generated — normally a side effect of
+      # `next dev`/`next build`, but neither has run yet at this point in CI.
+      - name: Generate Next.js types
+        run: npx next typegen
 
       - name: Type check
         run: npx tsc --noEmit
@@ -51,7 +57,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - run: npm ci
