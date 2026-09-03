@@ -1,3 +1,4 @@
+import { endOfMonth, format } from "date-fns";
 import { createClient } from "@/lib/supabase/server";
 import type { BudgetInput } from "@/lib/validation/budget";
 
@@ -17,10 +18,13 @@ export interface CategoryBudgetProgress {
  */
 export async function listBudgetsForMonth(month: string): Promise<CategoryBudgetProgress[]> {
   const supabase = await createClient();
+  // Local-time throughout, start to finish — mixing a locally-parsed Date
+  // with UTC getters (as this used to) reads back a day (or, near a month
+  // boundary, a whole month) early for anyone east of UTC, e.g. Bangladesh
+  // at UTC+6, which silently made every month's spend total come back ৳0:
+  // the resulting range's end landed before its start.
   const monthDate = new Date(month + "T00:00:00");
-  const monthEnd = new Date(Date.UTC(monthDate.getUTCFullYear(), monthDate.getUTCMonth() + 1, 0))
-    .toISOString()
-    .slice(0, 10);
+  const monthEnd = format(endOfMonth(monthDate), "yyyy-MM-dd");
 
   const [
     { data: categories, error: categoriesError },

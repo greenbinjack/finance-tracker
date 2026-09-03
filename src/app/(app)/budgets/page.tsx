@@ -28,8 +28,14 @@ export default async function BudgetsPage({
   const [budgets, profile] = await Promise.all([listBudgetsForMonth(month), getProfile()]);
   const currency = profile?.currency;
 
-  const totalCap = budgets.reduce((sum, b) => sum + (b.cap ?? 0), 0);
-  const totalSpent = budgets.reduce((sum, b) => sum + b.spent, 0);
+  // Only categories that actually have a cap set count toward this summary —
+  // otherwise spend in totally unbudgeted categories inflated "total spend"
+  // against a cap total that only reflects the ones with a budget, making
+  // the bar read as wildly over budget even when the capped categories were
+  // all comfortably under.
+  const cappedBudgets = budgets.filter((b) => b.cap !== null);
+  const totalCap = cappedBudgets.reduce((sum, b) => sum + (b.cap ?? 0), 0);
+  const totalSpent = cappedBudgets.reduce((sum, b) => sum + b.spent, 0);
   const overallStatus = computeBudgetStatus(totalSpent, totalCap || null);
 
   return (
