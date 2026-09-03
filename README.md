@@ -1,0 +1,70 @@
+# Finance Tracker
+
+A personal finance PWA for daily expense/income tracking, investments, loans,
+and event/trip budget planning with group expense splitting.
+
+## Stack
+
+- [Next.js](https://nextjs.org) 16 (App Router, Turbopack)
+- [Supabase](https://supabase.com) (Postgres, Auth, Storage)
+- TypeScript, Tailwind CSS, [Base UI](https://base-ui.com)
+- [Vitest](https://vitest.dev) for unit tests, [Playwright](https://playwright.dev) for end-to-end tests
+
+## Setup
+
+### 1. Install dependencies
+
+```bash
+npm install
+```
+
+### 2. Create a Supabase project
+
+Create a free project at [supabase.com](https://supabase.com), then open the
+SQL Editor and run the full contents of `supabase/schema.sql`. This sets up
+every table, Row Level Security policy, and database function the app needs.
+The file is idempotent — safe to re-run any time, including after pulling
+schema changes.
+
+In your Supabase project, also:
+
+- Create a **Storage bucket** named `receipts` if it wasn't created by the
+  SQL script (it is, via `insert into storage.buckets`) — used for expense
+  receipt photo uploads.
+- Under **Authentication → Providers → Email**, decide whether you want
+  "Confirm email" enabled (recommended for a real deployment; you may want
+  it off for quick local testing).
+
+### 3. Environment variables
+
+Create a `.env.local` file in the project root:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=your-supabase-project-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+```
+
+Both values are on your Supabase project's **Settings → API** page.
+
+### 4. Run the dev server
+
+```bash
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) and sign up for an
+account — default categories and a starter account are seeded automatically
+on first login.
+
+## Testing
+
+```bash
+npm test          # unit tests (Vitest)
+npm run test:e2e  # end-to-end tests (Playwright) — needs E2E_EMAIL / E2E_PASSWORD
+                   # env vars for a real test account; skips automatically if unset
+```
+
+## Deployment
+
+Deploys cleanly to [Vercel](https://vercel.com) — set the same two
+environment variables from step 3 in your Vercel project settings.
