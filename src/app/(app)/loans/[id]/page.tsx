@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronLeft, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { BackButton } from "@/components/back-button";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { LoanPaymentForm } from "@/components/loan-payment-form";
 import { getLoan } from "@/lib/services/loans";
@@ -37,16 +37,7 @@ export default async function LoanDetailPage({ params }: { params: Promise<{ id:
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center gap-2">
-        <Button
-          variant="ghost"
-          size="icon"
-          nativeButton={false}
-          render={
-            <Link href="/loans">
-              <ChevronLeft className="h-5 w-5" />
-            </Link>
-          }
-        />
+        <BackButton />
         <h1 className="text-lg font-semibold">{loan.person_name}</h1>
       </div>
 

@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, Plus, Pencil } from "lucide-react";
 import { format, startOfMonth, addMonths, subMonths, parse } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { BackButton } from "@/components/back-button";
 import { SetBudgetDialog } from "@/components/set-budget-dialog";
 import { listBudgetsForMonth } from "@/lib/services/budgets";
 import { getProfile } from "@/lib/services/profile";
@@ -33,7 +34,8 @@ export default async function BudgetsPage({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center gap-2">
+        <BackButton />
         <h1 className="text-2xl font-semibold tracking-tight">Budgets</h1>
       </div>
 

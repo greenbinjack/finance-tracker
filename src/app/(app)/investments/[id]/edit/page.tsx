@@ -1,7 +1,5 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronLeft } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { BackButton } from "@/components/back-button";
 import { InvestmentForm } from "@/components/investment-form";
 import { getInvestment, listInvestmentTypes } from "@/lib/services/investments";
 import { updateInvestmentAction, deleteInvestmentAction } from "../../actions";
@@ -22,16 +20,7 @@ export default async function EditInvestmentPage({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center gap-2">
-        <Button
-          variant="ghost"
-          size="icon"
-          nativeButton={false}
-          render={
-            <Link href="/investments">
-              <ChevronLeft className="h-5 w-5" />
-            </Link>
-          }
-        />
+        <BackButton />
         <h1 className="text-lg font-semibold">Edit investment</h1>
       </div>
 

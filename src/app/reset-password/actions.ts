@@ -11,7 +11,7 @@ export async function resetPassword(formData: FormData) {
   const password = String(formData.get("password") ?? "");
   const confirmPassword = String(formData.get("confirm_password") ?? "");
 
-  if (password.length < 6) redirectWithError("Password must be at least 6 characters");
+  if (password.length < 8) redirectWithError("Password must be at least 8 characters");
   if (password !== confirmPassword) redirectWithError("Passwords don't match");
 
   const supabase = await createClient();

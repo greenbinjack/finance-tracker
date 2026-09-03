@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { TransactionInput } from "@/lib/validation/transaction";
 import type { TransactionKind } from "@/lib/supabase/database.types";
 import type { CsvImportRow } from "@/lib/domain/csv-import";
+import { isSubsequenceMatch } from "@/lib/domain/search";
 import {
   buildCategoryBreakdown,
   buildTrend,
@@ -29,8 +30,6 @@ export async function listTransactions(filters: TransactionFilters = {}) {
   const supabase = await createClient();
   const page = filters.page ?? 0;
   const pageSize = filters.pageSize ?? DEFAULT_PAGE_SIZE;
-  const from = page * pageSize;
-  const to = from + pageSize - 1;
 
   // accounts is hinted to the account_id FK specifically — there are two FKs
   // from transactions to accounts now (account_id, to_account_id), so the
@@ -42,8 +41,7 @@ export async function listTransactions(filters: TransactionFilters = {}) {
     })
     .eq("in_personal_history", true)
     .order("occurred_on", { ascending: false })
-    .order("created_at", { ascending: false })
-    .range(from, to);
+    .order("created_at", { ascending: false });
 
   if (filters.from) query = query.gte("occurred_on", filters.from);
   if (filters.to) query = query.lte("occurred_on", filters.to);
@@ -51,9 +49,22 @@ export async function listTransactions(filters: TransactionFilters = {}) {
   if (filters.accountId) query = query.eq("account_id", filters.accountId);
   if (filters.eventId) query = query.eq("event_id", filters.eventId);
   if (filters.type) query = query.eq("type", filters.type);
-  if (filters.search) query = query.ilike("note", `%${filters.search}%`);
 
-  const { data, error, count } = await query;
+  // A search term is matched as a subsequence (letters in order, not
+  // necessarily consecutive — "grcry" matches "Groceries"), not a SQL
+  // substring/prefix match, so it can't be pushed down as an `ilike` filter.
+  // Fetches every row matching the other filters and paginates in JS
+  // instead of at the DB level — fine at this app's personal-use scale.
+  if (filters.search) {
+    const { data, error } = await query;
+    if (error) throw error;
+    const matched = data.filter((t) => isSubsequenceMatch(filters.search!, t.note ?? ""));
+    const start = page * pageSize;
+    return { transactions: matched.slice(start, start + pageSize), total: matched.length };
+  }
+
+  const start = page * pageSize;
+  const { data, error, count } = await query.range(start, start + pageSize - 1);
   if (error) throw error;
   return { transactions: data, total: count ?? 0 };
 }

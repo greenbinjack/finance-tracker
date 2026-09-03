@@ -1,6 +1,4 @@
-import Link from "next/link";
-import { ChevronLeft } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { BackButton } from "@/components/back-button";
 import { TransactionForm } from "@/components/transaction-form";
 import { listCategories } from "@/lib/services/categories";
 import { listAccounts } from "@/lib/services/accounts";
@@ -19,7 +17,6 @@ export default async function NewTransactionPage({
     listEvents(),
   ]);
 
-  const backHref = eventId ? `/events/${eventId}` : "/";
   const lockedEvent = eventId ? events.find((e) => e.id === eventId) : undefined;
 
   // Prefill from a "looks recurring, log it again?" dashboard suggestion —
@@ -39,16 +36,7 @@ export default async function NewTransactionPage({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center gap-2">
-        <Button
-          variant="ghost"
-          size="icon"
-          nativeButton={false}
-          render={
-            <Link href={backHref}>
-              <ChevronLeft className="h-5 w-5" />
-            </Link>
-          }
-        />
+        <BackButton />
         <h1 className="text-lg font-semibold">Add transaction</h1>
       </div>
 

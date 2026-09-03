@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronLeft, Pencil, Plus } from "lucide-react";
+import { Pencil, Plus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { BackButton } from "@/components/back-button";
 import { EventChecklist } from "@/components/event-checklist";
 import { EventParticipants } from "@/components/event-participants";
 import { EventExpenseRow } from "@/components/event-expense-row";
@@ -63,16 +64,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center gap-2">
-        <Button
-          variant="ghost"
-          size="icon"
-          nativeButton={false}
-          render={
-            <Link href="/events">
-              <ChevronLeft className="h-5 w-5" />
-            </Link>
-          }
-        />
+        <BackButton />
         <h1 className="flex-1 truncate text-lg font-semibold">{event.name}</h1>
         <TripShareButton eventId={id} shareToken={event.share_token} />
         <Button

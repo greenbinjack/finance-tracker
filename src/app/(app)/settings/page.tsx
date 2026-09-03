@@ -1,6 +1,6 @@
-import Link from "next/link";
-import { ChevronLeft, ArrowLeftRight, Download, TriangleAlert } from "lucide-react";
+import { ArrowLeftRight, Download, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { BackButton } from "@/components/back-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CurrencySelector } from "@/components/settings/currency-selector";
 import { CategoryManager } from "@/components/settings/category-manager";
@@ -27,16 +27,7 @@ export default async function SettingsPage() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center gap-2">
-        <Button
-          variant="ghost"
-          size="icon"
-          nativeButton={false}
-          render={
-            <Link href="/more">
-              <ChevronLeft className="h-5 w-5" />
-            </Link>
-          }
-        />
+        <BackButton />
         <h1 className="text-lg font-semibold">Settings</h1>
       </div>
 
