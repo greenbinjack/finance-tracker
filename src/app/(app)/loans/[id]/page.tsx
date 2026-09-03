@@ -8,7 +8,7 @@ import { LoanPaymentForm } from "@/components/loan-payment-form";
 import { getLoan } from "@/lib/services/loans";
 import { getProfile } from "@/lib/services/profile";
 import { computeLoanStatus, remainingBalance, computeAccruedInterest } from "@/lib/domain/loan";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { formatCurrency, formatDate, todayLocalDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { addLoanPaymentAction, deleteLoanAction } from "../actions";
 
@@ -26,7 +26,7 @@ export default async function LoanDetailPage({ params }: { params: Promise<{ id:
   const remaining = remainingBalance(Number(loan.principal_amount), totalPaid);
   const status = computeLoanStatus(Number(loan.principal_amount), totalPaid);
   const progressPercent = Math.min(100, (totalPaid / Number(loan.principal_amount)) * 100);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayLocalDate();
   const accruedInterest = computeAccruedInterest(
     Number(loan.principal_amount),
     loan.interest_rate === null ? null : Number(loan.interest_rate),

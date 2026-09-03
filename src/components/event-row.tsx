@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { formatCurrency, formatDate, todayLocalDate } from "@/lib/format";
 import { computeEventBudgetStatus, computeCountdown, formatCountdown } from "@/lib/domain/event";
 import { cn } from "@/lib/utils";
 
@@ -18,7 +18,7 @@ export function EventRow({ event, currency }: { event: EventRowData; currency?: 
     event.budget_amount === null ? null : Number(event.budget_amount),
   );
   const countdown = formatCountdown(
-    computeCountdown(event.start_date, event.end_date, new Date().toISOString().slice(0, 10)),
+    computeCountdown(event.start_date, event.end_date, todayLocalDate()),
   );
 
   return (

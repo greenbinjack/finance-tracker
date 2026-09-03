@@ -15,7 +15,7 @@ import { TripShareButton } from "@/components/trip-share-button";
 import { DeleteEventButton } from "@/components/delete-event-button";
 import { getEventDetail } from "@/lib/services/events";
 import { computeEventBudgetStatus, computeTotalJourneyMoney, computeCountdown, formatCountdown } from "@/lib/domain/event";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { formatCurrency, formatDate, todayLocalDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { deleteEventAction } from "../actions";
 
@@ -89,7 +89,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
               {event.end_date && formatDate(event.end_date)}
               {(() => {
                 const countdown = formatCountdown(
-                  computeCountdown(event.start_date, event.end_date, new Date().toISOString().slice(0, 10)),
+                  computeCountdown(event.start_date, event.end_date, todayLocalDate()),
                 );
                 return (
                   countdown && (

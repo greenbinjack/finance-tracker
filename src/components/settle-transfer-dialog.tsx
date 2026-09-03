@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
+import { todayLocalDate } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -62,7 +63,7 @@ export function SettleTransferDialog({
   const [fromId, setFromId] = useState<string | null>(null);
   const [toId, setToId] = useState<string | null>(null);
   const [amount, setAmount] = useState("");
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(todayLocalDate());
   const [isPending, startTransition] = useTransition();
 
   function initialize() {
@@ -84,7 +85,7 @@ export function SettleTransferDialog({
     setFromId(from?.participantId ?? null);
     setToId(to?.participantId ?? null);
     setAmount(from && to ? String(Math.min(Math.abs(from.balance), Math.abs(to.balance))) : "");
-    setDate(new Date().toISOString().slice(0, 10));
+    setDate(todayLocalDate());
   }
 
   const fromRow = rows.find((r) => r.participantId === fromId);

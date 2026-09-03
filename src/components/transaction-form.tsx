@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import type { z } from "zod";
 import { transactionSchema, type TransactionInput } from "@/lib/validation/transaction";
 import { renderCategoryIcon } from "@/lib/category-icons";
+import { todayLocalDate } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -86,7 +87,7 @@ export function TransactionForm({
     resolver: zodResolver(transactionSchema),
     defaultValues: {
       type: "expense",
-      occurred_on: new Date().toISOString().slice(0, 10),
+      occurred_on: todayLocalDate(),
       ...defaultValues,
       ...(lockedEvent ? { event_id: lockedEvent.id } : {}),
     },

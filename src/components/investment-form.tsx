@@ -8,6 +8,7 @@ import type { z } from "zod";
 import { investmentSchema, type InvestmentInput } from "@/lib/validation/investment";
 import { isRedirectError } from "@/lib/is-redirect-error";
 import { humanizeInvestmentType } from "@/lib/domain/investment";
+import { todayLocalDate } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -62,7 +63,7 @@ export function InvestmentForm({
     resolver: zodResolver(investmentSchema),
     defaultValues: {
       type: types[0] ?? "Stocks",
-      date_invested: new Date().toISOString().slice(0, 10),
+      date_invested: todayLocalDate(),
       current_value: 0,
       ...defaultValues,
       ...(defaultValues?.type ? { type: humanizeInvestmentType(defaultValues.type) } : {}),

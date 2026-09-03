@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
+import { todayLocalDate } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -49,7 +50,7 @@ export function FulfillScheduledItemDialog({
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState(String(remaining));
   const [givenBy, setGivenBy] = useState(ME_VALUE);
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(todayLocalDate());
   const [isPending, startTransition] = useTransition();
 
   function handleSave() {
@@ -91,7 +92,7 @@ export function FulfillScheduledItemDialog({
         if (next) {
           setAmount(String(remaining));
           setGivenBy(ME_VALUE);
-          setDate(new Date().toISOString().slice(0, 10));
+          setDate(todayLocalDate());
         }
       }}
     >

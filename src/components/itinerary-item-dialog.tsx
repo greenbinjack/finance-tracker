@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
+import { todayLocalDate } from "@/lib/format";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,7 +63,7 @@ export function ItineraryItemDialog({
 }) {
   const isEditing = Boolean(existing);
   const [open, setOpen] = useState(false);
-  const [dayDate, setDayDate] = useState(existing?.day_date ?? defaultDate ?? new Date().toISOString().slice(0, 10));
+  const [dayDate, setDayDate] = useState(existing?.day_date ?? defaultDate ?? todayLocalDate());
   const [time, setTime] = useState(existing?.time ?? "");
   const [title, setTitle] = useState(existing?.title ?? "");
   const [notes, setNotes] = useState(existing?.notes ?? "");
@@ -72,7 +73,7 @@ export function ItineraryItemDialog({
   const [isPending, startTransition] = useTransition();
 
   function resetToExisting() {
-    setDayDate(existing?.day_date ?? defaultDate ?? new Date().toISOString().slice(0, 10));
+    setDayDate(existing?.day_date ?? defaultDate ?? todayLocalDate());
     setTime(existing?.time ?? "");
     setTitle(existing?.title ?? "");
     setNotes(existing?.notes ?? "");
@@ -193,7 +194,7 @@ export function ItineraryItemDialog({
           <Label htmlFor="itinerary-notes">Notes (optional)</Label>
           <Input
             id="itinerary-notes"
-            placeholder="e.g. Confirmation #1234"
+            placeholder="e.g. Window seat requested"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
           />

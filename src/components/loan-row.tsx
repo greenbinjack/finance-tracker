@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { formatCurrency, formatDate, todayLocalDate } from "@/lib/format";
 import { remainingBalance, computeLoanUrgency } from "@/lib/domain/loan";
 import { cn } from "@/lib/utils";
 import type { LoanStatus } from "@/lib/supabase/database.types";
@@ -29,7 +29,7 @@ export interface LoanRowData {
 export function LoanRow({ loan, currency }: { loan: LoanRowData; currency?: string }) {
   const totalPaid = loan.loan_payments.reduce((sum, p) => sum + Number(p.amount), 0);
   const remaining = remainingBalance(Number(loan.principal_amount), totalPaid);
-  const urgency = computeLoanUrgency(loan.due_date, loan.status, new Date().toISOString().slice(0, 10));
+  const urgency = computeLoanUrgency(loan.due_date, loan.status, todayLocalDate());
 
   return (
     <Link

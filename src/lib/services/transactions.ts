@@ -3,6 +3,7 @@ import type { TransactionInput } from "@/lib/validation/transaction";
 import type { TransactionKind } from "@/lib/supabase/database.types";
 import type { CsvImportRow } from "@/lib/domain/csv-import";
 import { isSubsequenceMatch } from "@/lib/domain/search";
+import { toLocalDateString } from "@/lib/format";
 import {
   buildCategoryBreakdown,
   buildTrend,
@@ -84,7 +85,7 @@ export async function listRecentExpensesForRecurringDetection() {
     .select("category_id, account_id, amount, occurred_on, note")
     .eq("type", "expense")
     .eq("in_personal_history", true)
-    .gte("occurred_on", since.toISOString().slice(0, 10));
+    .gte("occurred_on", toLocalDateString(since));
 
   if (error) throw error;
   return data;

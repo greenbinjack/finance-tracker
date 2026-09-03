@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { todayLocalDate } from "@/lib/format";
 
 type LoanFormValues = z.input<typeof loanSchema>;
 
@@ -27,7 +28,7 @@ export function LoanForm({ onSubmit }: { onSubmit: (input: LoanInput) => Promise
     resolver: zodResolver(loanSchema),
     defaultValues: {
       direction: "given",
-      date_of_loan: new Date().toISOString().slice(0, 10),
+      date_of_loan: todayLocalDate(),
     },
   });
 

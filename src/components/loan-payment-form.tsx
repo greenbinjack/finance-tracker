@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { todayLocalDate } from "@/lib/format";
 
 export function LoanPaymentForm({
   onSubmit,
@@ -12,7 +13,7 @@ export function LoanPaymentForm({
   onSubmit: (input: { amount: number; paid_on: string }) => Promise<void>;
 }) {
   const [amount, setAmount] = useState("");
-  const [paidOn, setPaidOn] = useState(new Date().toISOString().slice(0, 10));
+  const [paidOn, setPaidOn] = useState(todayLocalDate());
   const [isPending, startTransition] = useTransition();
 
   function handleSubmit(e: React.FormEvent) {

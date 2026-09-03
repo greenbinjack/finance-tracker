@@ -23,6 +23,7 @@ import {
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { renderCategoryIcon } from "@/lib/category-icons";
 import { cn } from "@/lib/utils";
+import { todayLocalDate } from "@/lib/format";
 import { isRedirectError } from "@/lib/is-redirect-error";
 import {
   createEventExpenseAction,
@@ -91,7 +92,7 @@ export function AddEventExpenseDialog({
   const [amount, setAmount] = useState(existing ? String(existing.amount) : "");
   const [categoryId, setCategoryId] = useState(existing?.category_id ?? "");
   const [accountId, setAccountId] = useState(existing?.account_id ?? "");
-  const [date, setDate] = useState(existing?.occurred_on ?? new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(existing?.occurred_on ?? todayLocalDate());
   const [note, setNote] = useState(existing?.note ?? "");
   const [givenBy, setGivenBy] = useState(
     existing ? givenBySelectValue(existing.paid_by_participant_id, existing.is_external) : ME_VALUE,
@@ -118,7 +119,7 @@ export function AddEventExpenseDialog({
     setAmount(existing ? String(existing.amount) : "");
     setCategoryId(existing?.category_id ?? "");
     setAccountId(existing?.account_id ?? "");
-    setDate(existing?.occurred_on ?? new Date().toISOString().slice(0, 10));
+    setDate(existing?.occurred_on ?? todayLocalDate());
     setNote(existing?.note ?? "");
     setGivenBy(existing ? givenBySelectValue(existing.paid_by_participant_id, existing.is_external) : ME_VALUE);
     setSplitMode(existing?.splits && existing.splits.length > 0 ? "custom" : "equal");
