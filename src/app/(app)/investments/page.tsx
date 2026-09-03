@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Plus, TrendingUp, Wallet, Scale } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { BackButton } from "@/components/back-button";
 import { StatCard } from "@/components/stat-card";
 import { InvestmentRow } from "@/components/investment-row";
 import { listInvestments, getInvestmentSummary } from "@/lib/services/investments";
@@ -18,8 +19,9 @@ export default async function InvestmentsPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight">Investments</h1>
+      <div className="flex items-center gap-2">
+        <BackButton />
+        <h1 className="flex-1 text-2xl font-semibold tracking-tight">Investments</h1>
         <Button
           size="sm"
           nativeButton={false}
