@@ -7,6 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Dialog,
   DialogContent,
   DialogFooter,
@@ -21,6 +28,15 @@ import {
   updateItineraryItemAction,
   deleteItineraryItemAction,
 } from "@/app/(app)/events/actions";
+import type { ItineraryItemType } from "@/lib/supabase/database.types";
+
+export const ITINERARY_TYPE_LABELS: Record<ItineraryItemType, string> = {
+  activity: "Activity",
+  flight: "Flight",
+  hotel: "Hotel",
+  transport: "Transport",
+  other: "Other",
+};
 
 export interface ItineraryItemRecord {
   id: string;
@@ -29,6 +45,8 @@ export interface ItineraryItemRecord {
   title: string;
   notes: string | null;
   location: string | null;
+  item_type: ItineraryItemType;
+  confirmation_number: string | null;
 }
 
 export function ItineraryItemDialog({
@@ -49,6 +67,8 @@ export function ItineraryItemDialog({
   const [title, setTitle] = useState(existing?.title ?? "");
   const [notes, setNotes] = useState(existing?.notes ?? "");
   const [location, setLocation] = useState(existing?.location ?? "");
+  const [itemType, setItemType] = useState<ItineraryItemType>(existing?.item_type ?? "activity");
+  const [confirmationNumber, setConfirmationNumber] = useState(existing?.confirmation_number ?? "");
   const [isPending, startTransition] = useTransition();
 
   function resetToExisting() {
@@ -57,6 +77,8 @@ export function ItineraryItemDialog({
     setTitle(existing?.title ?? "");
     setNotes(existing?.notes ?? "");
     setLocation(existing?.location ?? "");
+    setItemType(existing?.item_type ?? "activity");
+    setConfirmationNumber(existing?.confirmation_number ?? "");
   }
 
   function handleSave() {
@@ -70,6 +92,8 @@ export function ItineraryItemDialog({
       title: title.trim(),
       notes: notes || undefined,
       location: location || undefined,
+      item_type: itemType,
+      confirmation_number: confirmationNumber || undefined,
     };
 
     startTransition(async () => {
@@ -124,6 +148,36 @@ export function ItineraryItemDialog({
             onChange={(e) => setTitle(e.target.value)}
           />
         </div>
+
+        <div className="flex flex-col gap-2">
+          <Label>Type</Label>
+          <Select value={itemType} onValueChange={(v) => setItemType((v ?? "activity") as ItineraryItemType)}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Activity">
+                {(value: string) => ITINERARY_TYPE_LABELS[value as ItineraryItemType] ?? "Activity"}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {(Object.keys(ITINERARY_TYPE_LABELS) as ItineraryItemType[]).map((t) => (
+                <SelectItem key={t} value={t}>
+                  {ITINERARY_TYPE_LABELS[t]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {(itemType === "flight" || itemType === "hotel" || itemType === "transport") && (
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="itinerary-confirmation">Confirmation number (optional)</Label>
+            <Input
+              id="itinerary-confirmation"
+              placeholder="e.g. PNR ABC123"
+              value={confirmationNumber}
+              onChange={(e) => setConfirmationNumber(e.target.value)}
+            />
+          </div>
+        )}
 
         <div className="flex flex-col gap-2">
           <Label htmlFor="itinerary-location">Location (optional)</Label>

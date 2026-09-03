@@ -9,6 +9,8 @@ import { TransferDialog } from "@/components/transfer-dialog";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { DeleteAccountDialog } from "@/components/delete-account-dialog";
 import { TwoFactorSettings } from "@/components/two-factor-settings";
+import { CsvImportDialog } from "@/components/csv-import-dialog";
+import { SignOutOtherSessionsButton } from "@/components/sign-out-other-sessions-button";
 import { getProfile } from "@/lib/services/profile";
 import { listCategories } from "@/lib/services/categories";
 import { listAccounts } from "@/lib/services/accounts";
@@ -89,8 +91,11 @@ export default async function SettingsPage() {
         <CardHeader>
           <CardTitle className="text-base">Security</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex flex-col gap-4">
           <TwoFactorSettings initialFactors={mfaFactors} />
+          <div className="border-t border-border pt-4">
+            <SignOutOtherSessionsButton />
+          </div>
         </CardContent>
       </Card>
 
@@ -121,6 +126,7 @@ export default async function SettingsPage() {
               </a>
             }
           />
+          <CsvImportDialog />
         </CardContent>
       </Card>
 

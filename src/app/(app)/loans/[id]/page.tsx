@@ -7,7 +7,7 @@ import { ConfirmDialog } from "@/components/confirm-dialog";
 import { LoanPaymentForm } from "@/components/loan-payment-form";
 import { getLoan } from "@/lib/services/loans";
 import { getProfile } from "@/lib/services/profile";
-import { computeLoanStatus, remainingBalance } from "@/lib/domain/loan";
+import { computeLoanStatus, remainingBalance, computeAccruedInterest } from "@/lib/domain/loan";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { addLoanPaymentAction, deleteLoanAction } from "../actions";
@@ -26,6 +26,13 @@ export default async function LoanDetailPage({ params }: { params: Promise<{ id:
   const remaining = remainingBalance(Number(loan.principal_amount), totalPaid);
   const status = computeLoanStatus(Number(loan.principal_amount), totalPaid);
   const progressPercent = Math.min(100, (totalPaid / Number(loan.principal_amount)) * 100);
+  const today = new Date().toISOString().slice(0, 10);
+  const accruedInterest = computeAccruedInterest(
+    Number(loan.principal_amount),
+    loan.interest_rate === null ? null : Number(loan.interest_rate),
+    loan.date_of_loan,
+    today,
+  );
 
   return (
     <div className="flex flex-col gap-4">
@@ -73,6 +80,15 @@ export default async function LoanDetailPage({ params }: { params: Promise<{ id:
               style={{ width: `${progressPercent}%` }}
             />
           </div>
+
+          {loan.interest_rate !== null && Number(loan.interest_rate) > 0 && (
+            <div className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2 text-sm">
+              <span className="text-muted-foreground">
+                Interest accrued ({Number(loan.interest_rate)}%/yr, since {formatDate(loan.date_of_loan)})
+              </span>
+              <span className="font-medium tabular-nums">{formatCurrency(accruedInterest, currency)}</span>
+            </div>
+          )}
 
           {loan.notes && <p className="text-sm text-muted-foreground">{loan.notes}</p>}
         </CardContent>

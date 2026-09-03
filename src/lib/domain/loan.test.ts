@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { computeLoanStatus, remainingBalance, computeLoanUrgency } from "./loan";
+import { computeLoanStatus, remainingBalance, computeLoanUrgency, computeAccruedInterest } from "./loan";
 
 describe("computeLoanStatus", () => {
   it("is open when nothing has been paid", () => {
@@ -59,5 +59,32 @@ describe("computeLoanUrgency", () => {
   it("respects a custom due-soon window", () => {
     expect(computeLoanUrgency("2026-09-05", "open", today, 1)).toBe("none");
     expect(computeLoanUrgency("2026-09-04", "open", today, 1)).toBe("due_soon");
+  });
+});
+
+describe("computeAccruedInterest", () => {
+  it("computes simple interest for a full year", () => {
+    expect(computeAccruedInterest(10000, 10, "2025-09-03", "2026-09-03")).toBeCloseTo(1000, 0);
+  });
+
+  it("computes proportional interest for half a year", () => {
+    expect(computeAccruedInterest(10000, 10, "2026-03-05", "2026-09-05")).toBeCloseTo(500, -1);
+  });
+
+  it("returns 0 for a null rate", () => {
+    expect(computeAccruedInterest(10000, null, "2025-09-03", "2026-09-03")).toBe(0);
+  });
+
+  it("returns 0 for a zero or negative rate", () => {
+    expect(computeAccruedInterest(10000, 0, "2025-09-03", "2026-09-03")).toBe(0);
+    expect(computeAccruedInterest(10000, -5, "2025-09-03", "2026-09-03")).toBe(0);
+  });
+
+  it("returns 0 when the as-of date is before the loan date", () => {
+    expect(computeAccruedInterest(10000, 10, "2026-09-03", "2026-01-01")).toBe(0);
+  });
+
+  it("returns 0 on the loan date itself", () => {
+    expect(computeAccruedInterest(10000, 10, "2026-09-03", "2026-09-03")).toBe(0);
   });
 });

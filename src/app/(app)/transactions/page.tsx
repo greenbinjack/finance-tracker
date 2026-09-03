@@ -1,32 +1,37 @@
 import Link from "next/link";
-import { formatDate } from "@/lib/format";
 import { listTransactions } from "@/lib/services/transactions";
 import { getProfile } from "@/lib/services/profile";
 import { listAccounts } from "@/lib/services/accounts";
-import { TransactionRow } from "@/components/transaction-row";
+import { listCategories } from "@/lib/services/categories";
 import { TransactionSearchInput } from "@/components/transaction-search-input";
+import { TransactionDateRangeFilter } from "@/components/transaction-date-range-filter";
+import { TransactionHistoryList } from "@/components/transaction-history-list";
 import { cn } from "@/lib/utils";
 import type { TransactionKind } from "@/lib/supabase/database.types";
 
 export default async function TransactionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ type?: TransactionKind; q?: string }>;
+  searchParams: Promise<{ type?: TransactionKind; q?: string; from?: string; to?: string }>;
 }) {
-  const { type, q } = await searchParams;
+  const { type, q, from, to } = await searchParams;
 
-  const [{ transactions }, profile, accounts] = await Promise.all([
-    listTransactions({ type, search: q, pageSize: 100 }),
+  const [{ transactions }, profile, accounts, categories] = await Promise.all([
+    listTransactions({ type, search: q, from, to, pageSize: 100 }),
     getProfile(),
     listAccounts(),
+    listCategories(),
   ]);
 
-  const accountNameById = new Map(accounts.map((a) => [a.id, a.name]));
+  const accountNameById = Object.fromEntries(accounts.map((a) => [a.id, a.name]));
 
-  const groups = transactions.reduce<Record<string, typeof transactions>>((acc, tx) => {
-    (acc[tx.occurred_on] ??= []).push(tx);
-    return acc;
-  }, {});
+  const carryParams = () => {
+    const parts: string[] = [];
+    if (q) parts.push(`q=${encodeURIComponent(q)}`);
+    if (from) parts.push(`from=${from}`);
+    if (to) parts.push(`to=${to}`);
+    return parts;
+  };
 
   const filters = [
     { label: "All", value: undefined },
@@ -35,19 +40,19 @@ export default async function TransactionsPage({
     { label: "Transfers", value: "transfer" as const },
   ];
 
+  const hasFilters = Boolean(q || from || to);
+
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-2xl font-semibold tracking-tight">History</h1>
 
       <TransactionSearchInput />
+      <TransactionDateRangeFilter />
 
       <div className="flex gap-2 overflow-x-auto">
         {filters.map((f) => {
-          const href = f.value
-            ? `/transactions?type=${f.value}${q ? `&q=${encodeURIComponent(q)}` : ""}`
-            : q
-              ? `/transactions?q=${encodeURIComponent(q)}`
-              : "/transactions";
+          const params = f.value ? [`type=${f.value}`, ...carryParams()] : carryParams();
+          const href = params.length ? `/transactions?${params.join("&")}` : "/transactions";
           const active = type === f.value;
           return (
             <Link
@@ -66,28 +71,17 @@ export default async function TransactionsPage({
         })}
       </div>
 
-      {Object.keys(groups).length === 0 ? (
+      {transactions.length === 0 ? (
         <p className="py-12 text-center text-sm text-muted-foreground">
-          {q ? `No transactions match "${q}".` : "No transactions found."}
+          {hasFilters ? "No transactions match those filters." : "No transactions found."}
         </p>
       ) : (
-        <div className="flex flex-col gap-4">
-          {Object.entries(groups).map(([date, txs]) => (
-            <div key={date}>
-              <p className="mb-1 px-2 text-xs font-medium text-muted-foreground">{formatDate(date)}</p>
-              <div className="flex flex-col gap-0.5">
-                {txs.map((tx) => (
-                  <TransactionRow
-                    key={tx.id}
-                    tx={tx}
-                    currency={profile?.currency}
-                    accountNameById={accountNameById}
-                  />
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
+        <TransactionHistoryList
+          transactions={transactions}
+          currency={profile?.currency}
+          accountNameById={accountNameById}
+          categories={categories}
+        />
       )}
     </div>
   );

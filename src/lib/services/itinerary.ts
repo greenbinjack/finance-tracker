@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import type { ItineraryItemInput } from "@/lib/validation/itinerary";
+import type { ItineraryItemType } from "@/lib/supabase/database.types";
 
 export async function listItineraryItems(eventId: string) {
   const supabase = await createClient();
@@ -57,6 +58,8 @@ export interface SharedTripData {
     title: string;
     notes: string | null;
     location: string | null;
+    item_type: ItineraryItemType;
+    confirmation_number: string | null;
   }[];
   checklist: { text: string; is_done: boolean }[];
   participants: { name: string }[];

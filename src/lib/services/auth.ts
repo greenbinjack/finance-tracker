@@ -17,3 +17,16 @@ export async function verifyPassword(password: string): Promise<boolean> {
   const { error } = await supabase.auth.signInWithPassword({ email: user.email, password });
   return !error;
 }
+
+/**
+ * Revokes every session for this user except the one making this request —
+ * as close to "session management" as Supabase's client SDK supports.
+ * Listing individual sessions (device, IP, last-seen) isn't exposed to a
+ * regular user's session at all — that requires the service-role admin API,
+ * which this app deliberately never puts in reach of a Next.js client/route.
+ */
+export async function signOutOtherSessions(): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signOut({ scope: "others" });
+  if (error) throw error;
+}

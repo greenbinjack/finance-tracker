@@ -13,7 +13,7 @@ import { ItineraryList } from "@/components/itinerary-list";
 import { TripShareButton } from "@/components/trip-share-button";
 import { DeleteEventButton } from "@/components/delete-event-button";
 import { getEventDetail } from "@/lib/services/events";
-import { computeEventBudgetStatus, computeTotalJourneyMoney } from "@/lib/domain/event";
+import { computeEventBudgetStatus, computeTotalJourneyMoney, computeCountdown, formatCountdown } from "@/lib/domain/event";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { deleteEventAction } from "../actions";
@@ -95,6 +95,23 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
               {event.start_date && formatDate(event.start_date)}
               {event.start_date && event.end_date && " – "}
               {event.end_date && formatDate(event.end_date)}
+              {(() => {
+                const countdown = formatCountdown(
+                  computeCountdown(event.start_date, event.end_date, new Date().toISOString().slice(0, 10)),
+                );
+                return (
+                  countdown && (
+                    <span
+                      className={cn(
+                        "ml-1.5 font-medium",
+                        countdown === "Happening now" ? "text-emerald-600 dark:text-emerald-400" : "text-primary",
+                      )}
+                    >
+                      · {countdown}
+                    </span>
+                  )
+                );
+              })()}
             </p>
           )}
 

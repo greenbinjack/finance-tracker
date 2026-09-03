@@ -7,8 +7,14 @@ import {
   createTransaction,
   updateTransaction,
   deleteTransaction,
+  bulkDeleteTransactions,
+  bulkRecategorizeTransactions,
+  importTransactions,
 } from "@/lib/services/transactions";
 import { uploadReceipt, getReceiptUrl, deleteReceipt } from "@/lib/services/receipts";
+import { listCategories } from "@/lib/services/categories";
+import { listAccounts } from "@/lib/services/accounts";
+import { parseTransactionsCsv, type CsvImportRow } from "@/lib/domain/csv-import";
 
 // A transaction tagged to an event should return you to that event afterward
 // (you were planning a trip, not browsing your whole transaction history) —
@@ -49,6 +55,35 @@ export async function deleteTransactionInlineAction(id: string, eventId?: string
   revalidatePath("/");
   revalidatePath("/transactions");
   if (eventId) revalidatePath(`/events/${eventId}`);
+}
+
+export async function bulkDeleteTransactionsAction(ids: string[]) {
+  if (ids.length === 0) return;
+  await bulkDeleteTransactions(ids);
+  revalidatePath("/");
+  revalidatePath("/transactions");
+}
+
+export async function bulkRecategorizeTransactionsAction(ids: string[], categoryId: string) {
+  if (ids.length === 0) return;
+  await bulkRecategorizeTransactions(ids, categoryId);
+  revalidatePath("/");
+  revalidatePath("/transactions");
+}
+
+const MAX_CSV_BYTES = 2 * 1024 * 1024;
+
+export async function previewCsvImportAction(text: string) {
+  if (text.length > MAX_CSV_BYTES) throw new Error("That file is too large (max 2MB).");
+  const [categories, accounts] = await Promise.all([listCategories(), listAccounts()]);
+  return parseTransactionsCsv(text, categories, accounts);
+}
+
+export async function commitCsvImportAction(rows: CsvImportRow[]) {
+  const count = await importTransactions(rows);
+  revalidatePath("/");
+  revalidatePath("/transactions");
+  return count;
 }
 
 const MAX_RECEIPT_BYTES = 8 * 1024 * 1024;

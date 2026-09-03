@@ -5,6 +5,7 @@ import {
   buildBalanceTrend,
   buildDailyExpenseSeries,
   computeIncomeExpenseSummary,
+  computePeriodComparison,
 } from "./reports";
 
 describe("computeIncomeExpenseSummary", () => {
@@ -32,6 +33,37 @@ describe("computeIncomeExpenseSummary", () => {
       expense: 0,
       net: 100,
     });
+  });
+});
+
+describe("computePeriodComparison", () => {
+  it("computes amount and percent deltas for a normal increase", () => {
+    const result = computePeriodComparison(
+      { income: 20000, expense: 6000, net: 14000 },
+      { income: 10000, expense: 5000, net: 5000 },
+    );
+    expect(result.income).toEqual({ amount: 10000, percent: 100 });
+    expect(result.expense).toEqual({ amount: 1000, percent: 20 });
+    expect(result.net).toEqual({ amount: 9000, percent: 180 });
+  });
+
+  it("computes a decrease as a negative delta", () => {
+    const result = computePeriodComparison({ income: 5000, expense: 5000, net: 0 }, { income: 10000, expense: 5000, net: 5000 });
+    expect(result.income.amount).toBe(-5000);
+    expect(result.income.percent).toBe(-50);
+  });
+
+  it("returns a null percent when the previous period was zero", () => {
+    const result = computePeriodComparison({ income: 500, expense: 0, net: 500 }, { income: 0, expense: 0, net: 0 });
+    expect(result.income).toEqual({ amount: 500, percent: null });
+  });
+
+  it("returns zero deltas when both periods match", () => {
+    const summary = { income: 1000, expense: 400, net: 600 };
+    const result = computePeriodComparison(summary, summary);
+    expect(result.income).toEqual({ amount: 0, percent: 0 });
+    expect(result.expense).toEqual({ amount: 0, percent: 0 });
+    expect(result.net).toEqual({ amount: 0, percent: 0 });
   });
 });
 

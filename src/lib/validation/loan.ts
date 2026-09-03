@@ -8,6 +8,7 @@ export const loanSchema = z.object({
   date_of_loan: z.string().min(1, "Date is required"),
   due_date: optionalDateString,
   notes: z.string().max(280).optional(),
+  interest_rate: z.coerce.number().min(0).max(100).optional(),
 });
 
 export type LoanInput = z.infer<typeof loanSchema>;

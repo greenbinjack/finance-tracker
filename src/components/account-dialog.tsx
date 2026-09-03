@@ -55,6 +55,8 @@ export interface AccountRecord {
   card_number: string | null;
   branch_name: string | null;
   branch_address: string | null;
+  is_primary: boolean;
+  sort_order: number;
 }
 
 export function AccountDialog({

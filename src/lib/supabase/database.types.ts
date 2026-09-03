@@ -10,6 +10,7 @@ export type AccountType = "cash" | "bank" | "card" | "mobile_wallet" | "other";
 export type InvestmentType = string;
 export type LoanDirection = "given" | "taken";
 export type LoanStatus = "open" | "partly_paid" | "settled";
+export type ItineraryItemType = "activity" | "flight" | "hotel" | "transport" | "other";
 
 interface Relationship {
   foreignKeyName: string;
@@ -44,6 +45,8 @@ export interface Database {
           card_number: string | null;
           branch_name: string | null;
           branch_address: string | null;
+          sort_order: number;
+          is_primary: boolean;
           created_at: string;
         },
         {
@@ -56,6 +59,8 @@ export interface Database {
           card_number?: string | null;
           branch_name?: string | null;
           branch_address?: string | null;
+          sort_order?: number;
+          is_primary?: boolean;
           created_at?: string;
         }
       >;
@@ -97,6 +102,8 @@ export interface Database {
           title: string;
           notes: string | null;
           location: string | null;
+          item_type: ItineraryItemType;
+          confirmation_number: string | null;
           created_at: string;
         },
         {
@@ -108,6 +115,8 @@ export interface Database {
           title: string;
           notes?: string | null;
           location?: string | null;
+          item_type?: ItineraryItemType;
+          confirmation_number?: string | null;
           created_at?: string;
         },
         [
@@ -357,6 +366,7 @@ export interface Database {
           due_date: string | null;
           status: LoanStatus;
           notes: string | null;
+          interest_rate: number | null;
           created_at: string;
         },
         {
@@ -369,6 +379,7 @@ export interface Database {
           due_date?: string | null;
           status?: LoanStatus;
           notes?: string | null;
+          interest_rate?: number | null;
           created_at?: string;
         }
       >;

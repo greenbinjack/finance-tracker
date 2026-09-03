@@ -112,6 +112,19 @@ export function LoanForm({ onSubmit }: { onSubmit: (input: LoanInput) => Promise
       </div>
 
       <div className="flex flex-col gap-2">
+        <Label htmlFor="interest_rate">Interest rate — annual %, simple interest (optional)</Label>
+        <Input
+          id="interest_rate"
+          type="number"
+          inputMode="decimal"
+          step="0.01"
+          placeholder="e.g. 5"
+          {...register("interest_rate")}
+        />
+        {errors.interest_rate && <p className="text-xs text-destructive">{errors.interest_rate.message}</p>}
+      </div>
+
+      <div className="flex flex-col gap-2">
         <Label htmlFor="notes">Notes (optional)</Label>
         <Input id="notes" placeholder="e.g. For rent" {...register("notes")} />
       </div>

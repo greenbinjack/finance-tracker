@@ -1,12 +1,29 @@
 import { createClient } from "@/lib/supabase/server";
 import { computeAccountBalances } from "@/lib/domain/accounts";
+import { decryptField, encryptOptionalField } from "@/lib/crypto/field-encryption";
 import type { AccountInput, TransferInput } from "@/lib/validation/account";
+
+function decryptAccountFields<T extends { account_number: string | null; card_number: string | null }>(
+  account: T,
+): T {
+  return {
+    ...account,
+    account_number: decryptField(account.account_number),
+    card_number: decryptField(account.card_number),
+  };
+}
 
 export async function listAccounts() {
   const supabase = await createClient();
+  // Ordered in JS, not via .order("sort_order", ...) — sort_order defaults
+  // to 0 for every row (see schema.sql), so this is a stable no-op until the
+  // user actually reorders accounts, and it's resilient to querying before
+  // that column's migration has been run against a given Supabase project.
   const { data, error } = await supabase.from("accounts").select("*").order("name");
   if (error) throw error;
-  return data;
+  return data
+    .map(decryptAccountFields)
+    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
 }
 
 export async function createAccount(input: AccountInput) {
@@ -18,31 +35,93 @@ export async function createAccount(input: AccountInput) {
 
   const { data, error } = await supabase
     .from("accounts")
-    .insert({ ...input, user_id: user.id })
+    .insert({
+      ...input,
+      account_number: encryptOptionalField(input.account_number),
+      card_number: encryptOptionalField(input.card_number),
+      user_id: user.id,
+    })
     .select()
     .single();
 
   if (error) throw error;
-  return data;
+  return decryptAccountFields(data);
 }
 
 export async function updateAccount(id: string, input: AccountInput) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("accounts")
-    .update(input)
+    .update({
+      ...input,
+      account_number: encryptOptionalField(input.account_number),
+      card_number: encryptOptionalField(input.card_number),
+    })
     .eq("id", id)
     .select()
     .single();
 
   if (error) throw error;
-  return data;
+  return decryptAccountFields(data);
 }
 
 export async function deleteAccount(id: string) {
   const supabase = await createClient();
   const { error } = await supabase.from("accounts").delete().eq("id", id);
   if (error) throw error;
+}
+
+/**
+ * Exclusive: unsets any existing primary account first, so there's never a
+ * moment where two accounts are both primary at once (the schema's partial
+ * unique index on `is_primary` would reject that) — a moment with zero
+ * primary accounts in between is fine, since the index only restricts >1.
+ */
+export async function setPrimaryAccount(id: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  const { error: unsetError } = await supabase
+    .from("accounts")
+    .update({ is_primary: false })
+    .eq("user_id", user.id)
+    .eq("is_primary", true);
+  if (unsetError) throw unsetError;
+
+  const { error } = await supabase.from("accounts").update({ is_primary: true }).eq("id", id);
+  if (error) throw error;
+}
+
+export async function unsetPrimaryAccount(id: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("accounts").update({ is_primary: false }).eq("id", id);
+  if (error) throw error;
+}
+
+async function reorderAccounts(orderedIds: string[]) {
+  const supabase = await createClient();
+  const results = await Promise.all(
+    orderedIds.map((id, index) => supabase.from("accounts").update({ sort_order: index }).eq("id", id)),
+  );
+  const failed = results.find((r) => r.error);
+  if (failed?.error) throw failed.error;
+}
+
+/** Swaps an account with its neighbor in display order — a no-op at either end of the list. */
+export async function moveAccount(id: string, direction: "up" | "down") {
+  const accounts = await listAccounts();
+  const index = accounts.findIndex((a) => a.id === id);
+  if (index === -1) return;
+
+  const swapWith = direction === "up" ? index - 1 : index + 1;
+  if (swapWith < 0 || swapWith >= accounts.length) return;
+
+  const reordered = [...accounts];
+  [reordered[index], reordered[swapWith]] = [reordered[swapWith], reordered[index]];
+  await reorderAccounts(reordered.map((a) => a.id));
 }
 
 export type { AccountBalance } from "@/lib/domain/accounts";

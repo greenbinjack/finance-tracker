@@ -15,8 +15,11 @@ import {
   updateAccount,
   deleteAccount,
   createTransfer,
+  setPrimaryAccount,
+  unsetPrimaryAccount,
+  moveAccount,
 } from "@/lib/services/accounts";
-import { verifyPassword } from "@/lib/services/auth";
+import { verifyPassword, signOutOtherSessions } from "@/lib/services/auth";
 import { accountSchema, transferSchema, type AccountInput, type TransferInput } from "@/lib/validation/account";
 import type { TransactionType } from "@/lib/supabase/database.types";
 
@@ -67,6 +70,21 @@ export async function deleteAccountAction(id: string) {
   revalidateSettingsSurfaces();
 }
 
+export async function setPrimaryAccountAction(id: string) {
+  await setPrimaryAccount(id);
+  revalidateSettingsSurfaces();
+}
+
+export async function unsetPrimaryAccountAction(id: string) {
+  await unsetPrimaryAccount(id);
+  revalidateSettingsSurfaces();
+}
+
+export async function moveAccountAction(id: string, direction: "up" | "down") {
+  await moveAccount(id, direction);
+  revalidateSettingsSurfaces();
+}
+
 /** Used to gate revealing a masked card/account number, and before a transfer — see verifyPassword. */
 export async function verifyPasswordAction(password: string): Promise<boolean> {
   return verifyPassword(password);
@@ -99,6 +117,10 @@ export async function deleteUserAccountAction(password: string) {
   }
 
   redirect("/login?message=" + encodeURIComponent("Your account has been deleted."));
+}
+
+export async function signOutOtherSessionsAction() {
+  await signOutOtherSessions();
 }
 
 export async function enrollTotpAction() {

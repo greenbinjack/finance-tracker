@@ -55,6 +55,19 @@ NEXT_PUBLIC_SENTRY_DSN=your-sentry-dsn
 
 Error monitoring is fully wired but inert without these — nothing is sent anywhere until they're set.
 
+Optionally, for field-level encryption of stored account/card numbers, add a 32-byte base64 key:
+
+```bash
+ACCOUNT_ENCRYPTION_KEY=your-generated-key
+```
+
+Generate one with `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`.
+Without this set, account/card numbers are stored as plain text (still scoped to you alone via
+Row Level Security, just not encrypted at the field level). Once set, new/edited accounts are
+encrypted automatically; existing plaintext accounts are encrypted the next time they're saved. If
+you set this in production, use the **same key** everywhere your app runs against the same
+database — a different key per environment means each one can't decrypt the other's data.
+
 ### 4. Run the dev server
 
 ```bash

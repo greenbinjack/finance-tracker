@@ -69,6 +69,33 @@ export function computeIncomeExpenseSummary(rows: { type: "expense" | "income"; 
   return { income, expense, net: income - expense };
 }
 
+export interface PeriodDelta {
+  amount: number;
+  /** Percent change vs. the previous period; null when the previous period was 0 (percent change is undefined). */
+  percent: number | null;
+}
+
+export interface PeriodComparison {
+  income: PeriodDelta;
+  expense: PeriodDelta;
+  net: PeriodDelta;
+}
+
+function delta(current: number, previous: number): PeriodDelta {
+  const amount = current - previous;
+  if (previous === 0) return { amount, percent: null };
+  return { amount, percent: (amount / Math.abs(previous)) * 100 };
+}
+
+/** How this period's income/expense/net compares to the equivalent prior period — feeds the Reports recap card. */
+export function computePeriodComparison(current: IncomeExpenseSummary, previous: IncomeExpenseSummary): PeriodComparison {
+  return {
+    income: delta(current.income, previous.income),
+    expense: delta(current.expense, previous.expense),
+    net: delta(current.net, previous.net),
+  };
+}
+
 export interface TrendPoint {
   periodKey: string;
   label: string;

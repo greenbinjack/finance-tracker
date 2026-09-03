@@ -1,3 +1,44 @@
+export type CountdownStatus = "upcoming" | "in_progress" | "past";
+
+export interface Countdown {
+  status: CountdownStatus;
+  /** Days until start_date (upcoming), or days since end_date/start_date (past) — always a non-negative count. */
+  days: number;
+}
+
+/**
+ * Days until a trip starts, or whether it's currently happening / already
+ * over — UTC date math (not local `Date` parsing) so it isn't off by a day
+ * across DST boundaries. Returns null when there's no start_date to count
+ * from at all.
+ */
+export function computeCountdown(startDate: string | null, endDate: string | null, today: string): Countdown | null {
+  if (!startDate) return null;
+
+  const start = new Date(startDate + "T00:00:00Z");
+  const end = new Date((endDate ?? startDate) + "T00:00:00Z");
+  const now = new Date(today + "T00:00:00Z");
+  const dayMs = 1000 * 60 * 60 * 24;
+
+  if (now < start) {
+    return { status: "upcoming", days: Math.round((start.getTime() - now.getTime()) / dayMs) };
+  }
+  if (now <= end) {
+    return { status: "in_progress", days: 0 };
+  }
+  return { status: "past", days: Math.round((now.getTime() - end.getTime()) / dayMs) };
+}
+
+/** A short display label for a countdown, or null when the trip is already over (nothing to show). */
+export function formatCountdown(countdown: Countdown | null): string | null {
+  if (!countdown) return null;
+  if (countdown.status === "in_progress") return "Happening now";
+  if (countdown.status === "past") return null;
+  if (countdown.days === 0) return "Starts today";
+  if (countdown.days === 1) return "1 day to go";
+  return `${countdown.days} days to go`;
+}
+
 export interface EventBudgetStatus {
   spent: number;
   budget: number | null;

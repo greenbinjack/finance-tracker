@@ -1,7 +1,16 @@
-import { Plus, Pencil, MapPin } from "lucide-react";
+import { Plus, Pencil, MapPin, Plane, BedDouble, Car, Sparkles } from "lucide-react";
 import { ItineraryItemDialog, type ItineraryItemRecord } from "@/components/itinerary-item-dialog";
 import { formatDate } from "@/lib/format";
 import { mapSearchUrl } from "@/lib/map-link";
+import type { ItineraryItemType } from "@/lib/supabase/database.types";
+
+const ITINERARY_TYPE_ICONS: Record<ItineraryItemType, typeof Plane> = {
+  activity: Sparkles,
+  flight: Plane,
+  hotel: BedDouble,
+  transport: Car,
+  other: Sparkles,
+};
 
 export function ItineraryList({ eventId, items }: { eventId: string; items: ItineraryItemRecord[] }) {
   const byDay = new Map<string, ItineraryItemRecord[]>();
@@ -22,7 +31,9 @@ export function ItineraryList({ eventId, items }: { eventId: string; items: Itin
         days.map((day) => (
           <div key={day} className="flex flex-col gap-1">
             <p className="px-2 text-xs font-medium text-muted-foreground">{formatDate(day)}</p>
-            {byDay.get(day)!.map((item) => (
+            {byDay.get(day)!.map((item) => {
+              const TypeIcon = ITINERARY_TYPE_ICONS[item.item_type];
+              return (
               <div key={item.id} className="flex items-center gap-1 rounded-lg transition-colors hover:bg-muted/60">
                 <ItineraryItemDialog
                   eventId={eventId}
@@ -32,12 +43,15 @@ export function ItineraryList({ eventId, items }: { eventId: string; items: Itin
                       {item.time && (
                         <span className="w-14 shrink-0 text-xs tabular-nums text-muted-foreground">{item.time}</span>
                       )}
+                      <TypeIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium">{item.title}</p>
-                        {(item.location || item.notes) && (
+                        {(item.location || item.notes || item.confirmation_number) && (
                           <p className="truncate text-xs text-muted-foreground">
                             {item.location ? `📍 ${item.location}` : ""}
-                            {item.location && item.notes ? " · " : ""}
+                            {item.location && (item.notes || item.confirmation_number) ? " · " : ""}
+                            {item.confirmation_number ? `#${item.confirmation_number}` : ""}
+                            {item.confirmation_number && item.notes ? " · " : ""}
                             {item.notes ?? ""}
                           </p>
                         )}
@@ -58,7 +72,8 @@ export function ItineraryList({ eventId, items }: { eventId: string; items: Itin
                   </a>
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
         ))
       )}

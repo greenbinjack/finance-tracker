@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { formatCurrency, formatDate } from "@/lib/format";
-import { computeEventBudgetStatus } from "@/lib/domain/event";
+import { computeEventBudgetStatus, computeCountdown, formatCountdown } from "@/lib/domain/event";
 import { cn } from "@/lib/utils";
 
 export interface EventRowData {
@@ -16,6 +16,9 @@ export function EventRow({ event, currency }: { event: EventRowData; currency?: 
   const status = computeEventBudgetStatus(
     event.spent,
     event.budget_amount === null ? null : Number(event.budget_amount),
+  );
+  const countdown = formatCountdown(
+    computeCountdown(event.start_date, event.end_date, new Date().toISOString().slice(0, 10)),
   );
 
   return (
@@ -37,6 +40,16 @@ export function EventRow({ event, currency }: { event: EventRowData; currency?: 
           {event.start_date && formatDate(event.start_date)}
           {event.start_date && event.end_date && " – "}
           {event.end_date && formatDate(event.end_date)}
+          {countdown && (
+            <span
+              className={cn(
+                "ml-1.5 font-medium",
+                countdown === "Happening now" ? "text-emerald-600 dark:text-emerald-400" : "text-primary",
+              )}
+            >
+              · {countdown}
+            </span>
+          )}
         </p>
       )}
       {status.percentUsed !== null && (

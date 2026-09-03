@@ -5,6 +5,7 @@ import {
   canChangeScheduledType,
   isOwnMoney,
   computeTotalJourneyMoney,
+  computeCountdown,
 } from "./event";
 
 describe("computeEventBudgetStatus", () => {
@@ -118,5 +119,39 @@ describe("computeTotalJourneyMoney", () => {
       [],
     );
     expect(total).toBe(7100);
+  });
+});
+
+describe("computeCountdown", () => {
+  const today = "2026-09-03";
+
+  it("returns null when there's no start date", () => {
+    expect(computeCountdown(null, null, today)).toBeNull();
+  });
+
+  it("is upcoming with days remaining before the trip starts", () => {
+    expect(computeCountdown("2026-09-15", "2026-09-20", today)).toEqual({ status: "upcoming", days: 12 });
+  });
+
+  it("is in_progress on the start date", () => {
+    expect(computeCountdown("2026-09-03", "2026-09-10", today)).toEqual({ status: "in_progress", days: 0 });
+  });
+
+  it("is in_progress between start and end dates", () => {
+    expect(computeCountdown("2026-09-01", "2026-09-10", today)).toEqual({ status: "in_progress", days: 0 });
+  });
+
+  it("is in_progress on the end date", () => {
+    expect(computeCountdown("2026-08-25", "2026-09-03", today)).toEqual({ status: "in_progress", days: 0 });
+  });
+
+  it("is past with days elapsed since the end date", () => {
+    expect(computeCountdown("2026-08-01", "2026-08-20", today)).toEqual({ status: "past", days: 14 });
+  });
+
+  it("treats a single-day trip (no end date) as ending on its start date", () => {
+    expect(computeCountdown("2026-09-03", null, today)).toEqual({ status: "in_progress", days: 0 });
+    expect(computeCountdown("2026-09-01", null, today)).toEqual({ status: "past", days: 2 });
+    expect(computeCountdown("2026-09-10", null, today)).toEqual({ status: "upcoming", days: 7 });
   });
 });

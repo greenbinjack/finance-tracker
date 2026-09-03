@@ -40,6 +40,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# supabase CLI local cache
+supabase/.temp/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
@@ -50,6 +53,7 @@ app-audit.md
 implementation.md
 learning-1.md
 supabase/CHANGELOG.md
+supabase/add-remaining-features.sql
 AGENTS.md
 CLAUDE.md
 .claude/

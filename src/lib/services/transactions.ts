@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import type { TransactionInput } from "@/lib/validation/transaction";
 import type { TransactionKind } from "@/lib/supabase/database.types";
+import type { CsvImportRow } from "@/lib/domain/csv-import";
 import {
   buildCategoryBreakdown,
   buildTrend,
@@ -136,6 +137,47 @@ export async function deleteTransaction(id: string) {
   if (error) throw error;
 }
 
+/** Inserts already-validated CSV import rows (see parseTransactionsCsv) as personal-history transactions. */
+export async function importTransactions(rows: CsvImportRow[]) {
+  if (rows.length === 0) return 0;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  const { error } = await supabase.from("transactions").insert(
+    rows.map((row) => ({
+      type: row.type,
+      amount: row.amount,
+      occurred_on: row.occurred_on,
+      category_id: row.category_id,
+      account_id: row.account_id,
+      note: row.note,
+      user_id: user.id,
+    })),
+  );
+  if (error) throw error;
+  return rows.length;
+}
+
+export async function bulkDeleteTransactions(ids: string[]) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("transactions").delete().in("id", ids);
+  if (error) throw error;
+}
+
+/** Applies to expense/income rows only — transfers have no category. */
+export async function bulkRecategorizeTransactions(ids: string[], categoryId: string) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("transactions")
+    .update({ category_id: categoryId })
+    .in("id", ids)
+    .neq("type", "transfer");
+  if (error) throw error;
+}
+
 export async function getDashboardSummary(monthStart: string, monthEnd: string) {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -156,6 +198,48 @@ export async function getDashboardSummary(monthStart: string, monthEnd: string) 
   );
 }
 
+/** Income/expense totals for an arbitrary period — feeds the Reports "vs. last period" recap. */
+export async function getPeriodSummary(from: string, to: string, filters: ReportFilters = {}) {
+  const supabase = await createClient();
+  let query = supabase
+    .from("transactions")
+    .select("type, amount")
+    .eq("in_personal_history", true)
+    .neq("type", "transfer")
+    .gte("occurred_on", from)
+    .lte("occurred_on", to);
+  if (filters.accountId) query = query.eq("account_id", filters.accountId);
+  if (filters.eventId) query = query.eq("event_id", filters.eventId);
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  return computeIncomeExpenseSummary(
+    data.map((t) => ({ type: t.type as "expense" | "income", amount: Number(t.amount) })),
+  );
+}
+
+/** Every transaction matching the given filters, unpaginated — feeds the Reports CSV export. */
+export async function listFilteredTransactionsForExport(from: string, to: string, filters: ReportFilters = {}) {
+  const supabase = await createClient();
+  let query = supabase
+    .from("transactions")
+    .select(
+      "occurred_on, type, amount, note, categories(name), accounts!transactions_account_id_fkey(name), to_account:accounts!transactions_to_account_id_fkey(name), events(name)",
+    )
+    .eq("in_personal_history", true)
+    .gte("occurred_on", from)
+    .lte("occurred_on", to)
+    .order("occurred_on", { ascending: false })
+    .order("created_at", { ascending: false });
+  if (filters.accountId) query = query.eq("account_id", filters.accountId);
+  if (filters.eventId) query = query.eq("event_id", filters.eventId);
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return data;
+}
+
 /** Earliest transaction date on record, for scoping an "all time" report range. */
 export async function getEarliestTransactionDate(): Promise<string | null> {
   const supabase = await createClient();
@@ -171,15 +255,29 @@ export async function getEarliestTransactionDate(): Promise<string | null> {
   return data?.occurred_on ?? null;
 }
 
-export async function getCategoryBreakdown(from: string, to: string, type: "expense" | "income") {
+export interface ReportFilters {
+  accountId?: string;
+  eventId?: string;
+}
+
+export async function getCategoryBreakdown(
+  from: string,
+  to: string,
+  type: "expense" | "income",
+  filters: ReportFilters = {},
+) {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from("transactions")
     .select("amount, categories(name)")
     .eq("type", type)
     .eq("in_personal_history", true)
     .gte("occurred_on", from)
     .lte("occurred_on", to);
+  if (filters.accountId) query = query.eq("account_id", filters.accountId);
+  if (filters.eventId) query = query.eq("event_id", filters.eventId);
+
+  const { data, error } = await query;
 
   if (error) throw error;
 
@@ -191,15 +289,24 @@ export async function getCategoryBreakdown(from: string, to: string, type: "expe
   );
 }
 
-export async function getIncomeExpenseTrend(from: string, to: string, granularity: Granularity) {
+export async function getIncomeExpenseTrend(
+  from: string,
+  to: string,
+  granularity: Granularity,
+  filters: ReportFilters = {},
+) {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from("transactions")
     .select("occurred_on, type, amount")
     .eq("in_personal_history", true)
     .neq("type", "transfer")
     .gte("occurred_on", from)
     .lte("occurred_on", to);
+  if (filters.accountId) query = query.eq("account_id", filters.accountId);
+  if (filters.eventId) query = query.eq("event_id", filters.eventId);
+
+  const { data, error } = await query;
 
   if (error) throw error;
 
@@ -213,17 +320,26 @@ export async function getIncomeExpenseTrend(from: string, to: string, granularit
   );
 }
 
-export async function getBalanceTrend(from: string, to: string, granularity: Granularity) {
+export async function getBalanceTrend(
+  from: string,
+  to: string,
+  granularity: Granularity,
+  filters: ReportFilters = {},
+) {
   const supabase = await createClient();
   // Needs full history (not just the visible range) so the running balance
   // starts from the real total rather than resetting to 0 — see buildBalanceTrend.
-  const { data, error } = await supabase
+  let query = supabase
     .from("transactions")
     .select("occurred_on, type, amount")
     .eq("in_personal_history", true)
     // A transfer between the user's own accounts doesn't change their net
     // worth at all — only expense/income should move this running balance.
     .neq("type", "transfer");
+  if (filters.accountId) query = query.eq("account_id", filters.accountId);
+  if (filters.eventId) query = query.eq("event_id", filters.eventId);
+
+  const { data, error } = await query;
 
   if (error) throw error;
 
@@ -239,15 +355,19 @@ export async function getBalanceTrend(from: string, to: string, granularity: Gra
   );
 }
 
-export async function getDailyExpenses(from: string, to: string) {
+export async function getDailyExpenses(from: string, to: string, filters: ReportFilters = {}) {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from("transactions")
     .select("occurred_on, type, amount")
     .eq("type", "expense")
     .eq("in_personal_history", true)
     .gte("occurred_on", from)
     .lte("occurred_on", to);
+  if (filters.accountId) query = query.eq("account_id", filters.accountId);
+  if (filters.eventId) query = query.eq("event_id", filters.eventId);
+
+  const { data, error } = await query;
 
   if (error) throw error;
 

@@ -50,6 +50,11 @@ create table if not exists accounts (
   unique (user_id, name)
 );
 create index if not exists accounts_user_id_idx on accounts (user_id);
+-- Manual display ordering, and an optional single "primary" flag per user
+-- (enforced by the partial unique index below, not an application check).
+alter table accounts add column if not exists sort_order integer not null default 0;
+alter table accounts add column if not exists is_primary boolean not null default false;
+create unique index if not exists accounts_one_primary_per_user on accounts (user_id) where is_primary;
 
 -- ============================================================
 -- categories: user-editable expense/income categories
@@ -250,6 +255,11 @@ create table if not exists loans (
   created_at timestamptz not null default now()
 );
 create index if not exists loans_user_id_idx on loans (user_id);
+
+-- Optional simple-interest rate (annual %, e.g. 5.5 for 5.5%/yr) — accrual is
+-- computed in the app (date_of_loan to today, or to settled date once that's
+-- tracked) rather than stored, so it's always current without a cron job.
+alter table loans add column if not exists interest_rate numeric(6, 3);
 
 create table if not exists loan_payments (
   id uuid primary key default gen_random_uuid(),
@@ -490,8 +500,22 @@ create table if not exists event_itinerary_items (
   created_at timestamptz not null default now()
 );
 create index if not exists event_itinerary_items_event_id_idx on event_itinerary_items (event_id);
--- Covers an already-existing table from before this column was added.
+-- Covers an already-existing table from before these columns were added.
 alter table event_itinerary_items add column if not exists location text;
+-- Structured booking info: what kind of stop this is, plus an optional
+-- confirmation/reference number (flight PNR, hotel booking ref, etc.) shown
+-- distinctly from the free-text notes field.
+alter table event_itinerary_items add column if not exists item_type text not null default 'activity';
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'event_itinerary_items_item_type_check'
+  ) then
+    alter table event_itinerary_items add constraint event_itinerary_items_item_type_check
+      check (item_type in ('activity', 'flight', 'hotel', 'transport', 'other'));
+  end if;
+end $$;
+alter table event_itinerary_items add column if not exists confirmation_number text;
 
 alter table event_itinerary_items enable row level security;
 create policy "event_itinerary_items: owner read/write" on event_itinerary_items
