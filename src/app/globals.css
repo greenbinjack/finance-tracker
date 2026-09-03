@@ -1,0 +1,171 @@
+@import "tailwindcss";
+
+/*
+  Custom data-attribute variants used by the Base UI-backed shadcn/ui components
+  (Tabs, Select, Dialog, Dropdown, etc). Tailwind v4 only ships bracketed
+  data-[attr=value]: variants out of the box — these bare shorthand names need
+  explicit registration, including their group-* composition (e.g. group-data-horizontal/tabs:).
+*/
+@custom-variant data-active (&[data-active]);
+@custom-variant data-checked (&[data-checked]);
+@custom-variant data-closed (&[data-closed]);
+@custom-variant data-disabled (&[data-disabled]);
+@custom-variant data-ending-style (&[data-ending-style]);
+@custom-variant data-horizontal (&[data-orientation="horizontal"]);
+@custom-variant data-vertical (&[data-orientation="vertical"]);
+@custom-variant data-inset (&[data-inset]);
+@custom-variant data-open (&[data-open]);
+@custom-variant data-placeholder (&[data-placeholder]);
+@custom-variant data-popup-open (&[data-popup-open]);
+@custom-variant data-starting-style (&[data-starting-style]);
+
+/*
+  Color system for Finance Tracker.
+
+  Brand accent: Indigo — used for primary actions, active nav state, focus rings,
+  links, and the "neutral" data series in charts. Chosen over green/red because
+  those are reserved for financial meaning below.
+
+  Semantic (financial) colors — used consistently everywhere money direction is shown:
+    - Emerald  = positive / income / gains
+    - Rose     = negative / expense / losses
+    - Amber    = warning / due / pending (e.g. an overdue loan)
+  These are applied directly via Tailwind's emerald/rose/amber palettes rather than
+  custom tokens, so they stay visually distinct from the indigo brand accent.
+*/
+
+:root {
+  --background: #ffffff;
+  --foreground: #0f0f12;
+
+  --card: #ffffff;
+  --card-foreground: #0f0f12;
+  --popover: #ffffff;
+  --popover-foreground: #0f0f12;
+
+  --primary: #4f46e5;
+  --primary-foreground: #ffffff;
+
+  --secondary: #f4f4f6;
+  --secondary-foreground: #17171b;
+
+  --muted: #f4f4f6;
+  --muted-foreground: #71717a;
+
+  --accent: #eef2ff;
+  --accent-foreground: #4338ca;
+
+  --destructive: #e11d48;
+  --destructive-foreground: #ffffff;
+
+  /* Income series color for charts — expense reuses --destructive (already rose-600/400,
+     matching the text-rose-600/text-emerald-600 convention used throughout the app). */
+  --income: #059669;
+
+  --border: #e4e4e7;
+  --input: #e4e4e7;
+  --ring: #4f46e5;
+
+  /* Categorical chart palette (validated: see dataviz skill / scripts/validate_palette.js).
+     Fixed hue order — never cycle or reassign per-render; a 9th series folds into "Other". */
+  --chart-1: #2a78d6; /* blue */
+  --chart-2: #eb6834; /* orange */
+  --chart-3: #1baf7a; /* aqua */
+  --chart-4: #eda100; /* yellow */
+  --chart-5: #e87ba4; /* magenta */
+  --chart-6: #008300; /* green */
+  --chart-7: #4a3aa7; /* violet */
+  --chart-8: #e34948; /* red */
+
+  --radius: 0.75rem;
+}
+
+/*
+  Dark theme — driven by next-themes adding a "dark" class to <html> (see
+  ThemeProvider, attribute="class"). This already resolves "system" preference
+  via JS before paint, so a prefers-color-scheme media query isn't used here —
+  it would fight an explicit light/dark choice whenever it disagreed with the OS.
+*/
+:root.dark {
+    --background: #0a0a0b;
+    --foreground: #f4f4f5;
+
+    --card: #131316;
+    --card-foreground: #f4f4f5;
+    --popover: #131316;
+    --popover-foreground: #f4f4f5;
+
+    --primary: #6366f1;
+    --primary-foreground: #ffffff;
+
+    --secondary: #1c1c20;
+    --secondary-foreground: #f4f4f5;
+
+    --muted: #1c1c20;
+    --muted-foreground: #a1a1aa;
+
+    --accent: #1e1b4b;
+    --accent-foreground: #c7d2fe;
+
+    --destructive: #fb7185;
+    --destructive-foreground: #1c0a0e;
+
+    --income: #34d399;
+
+    --border: #27272a;
+    --input: #27272a;
+    --ring: #6366f1;
+
+    --chart-1: #3987e5;
+    --chart-2: #d95926;
+    --chart-3: #199e70;
+    --chart-4: #c98500;
+    --chart-5: #d55181;
+    --chart-6: #008300;
+    --chart-7: #9085e9;
+    --chart-8: #e66767;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-income: var(--income);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-chart-6: var(--chart-6);
+  --color-chart-7: var(--chart-7);
+  --color-chart-8: var(--chart-8);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}

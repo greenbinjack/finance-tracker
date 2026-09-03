@@ -1,0 +1,214 @@
+import Link from "next/link";
+import {
+  startOfMonth,
+  endOfMonth,
+  startOfYear,
+  endOfYear,
+  subMonths,
+  subDays,
+  format,
+  differenceInCalendarDays,
+} from "date-fns";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CategoryBreakdownChart } from "@/components/category-breakdown-chart";
+import { TrendChart } from "@/components/trend-chart";
+import { BalanceTrendChart } from "@/components/balance-trend-chart";
+import { DailyExpenseChart } from "@/components/daily-expense-chart";
+import { CustomDateRangePicker } from "@/components/custom-date-range-picker";
+import {
+  getCategoryBreakdown,
+  getIncomeExpenseTrend,
+  getBalanceTrend,
+  getEarliestTransactionDate,
+  getDailyExpenses,
+} from "@/lib/services/transactions";
+import { getProfile } from "@/lib/services/profile";
+import { cn } from "@/lib/utils";
+import type { Granularity } from "@/lib/domain/reports";
+
+const RANGE_KEYS = ["month", "3months", "year", "all", "custom"] as const;
+type RangeKey = (typeof RANGE_KEYS)[number];
+
+function getRange(
+  key: RangeKey,
+  earliestTransactionDate: string | null,
+  custom: { from?: string; to?: string },
+): { from: string; to: string; granularity: Granularity } {
+  const now = new Date();
+  switch (key) {
+    case "month":
+      return {
+        from: format(startOfMonth(now), "yyyy-MM-dd"),
+        to: format(endOfMonth(now), "yyyy-MM-dd"),
+        granularity: "day",
+      };
+    case "3months":
+      return {
+        from: format(startOfMonth(subMonths(now, 2)), "yyyy-MM-dd"),
+        to: format(endOfMonth(now), "yyyy-MM-dd"),
+        granularity: "week",
+      };
+    case "year":
+      return {
+        from: format(startOfYear(now), "yyyy-MM-dd"),
+        to: format(endOfYear(now), "yyyy-MM-dd"),
+        granularity: "month",
+      };
+    case "all":
+      return {
+        // Scoped to the actual earliest transaction, not an arbitrary far-past
+        // date — otherwise real data gets crushed into a sliver at the chart's edge.
+        from: earliestTransactionDate ?? format(startOfMonth(now), "yyyy-MM-dd"),
+        to: format(now, "yyyy-MM-dd"),
+        granularity: "month",
+      };
+    case "custom": {
+      if (!custom.from || !custom.to || custom.from > custom.to) {
+        return getRange("month", earliestTransactionDate, {});
+      }
+      const spanDays = differenceInCalendarDays(new Date(custom.to), new Date(custom.from));
+      return {
+        from: custom.from,
+        to: custom.to,
+        granularity: spanDays <= 31 ? "day" : spanDays <= 180 ? "week" : "month",
+      };
+    }
+  }
+}
+
+const PRESETS: { key: RangeKey; label: string }[] = [
+  { key: "month", label: "This month" },
+  { key: "3months", label: "3 months" },
+  { key: "year", label: "This year" },
+  { key: "all", label: "All time" },
+  { key: "custom", label: "Custom" },
+];
+
+export default async function ReportsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ range?: string; catType?: string; from?: string; to?: string }>;
+}) {
+  const { range, catType, from: customFrom, to: customTo } = await searchParams;
+  const rangeKey: RangeKey = RANGE_KEYS.includes(range as RangeKey) ? (range as RangeKey) : "month";
+  const breakdownType: "expense" | "income" = catType === "income" ? "income" : "expense";
+  const earliestTransactionDate = rangeKey === "all" ? await getEarliestTransactionDate() : null;
+  const { from, to, granularity } = getRange(rangeKey, earliestTransactionDate, {
+    from: customFrom,
+    to: customTo,
+  });
+  const today = format(new Date(), "yyyy-MM-dd");
+  const dailyFrom = format(subDays(new Date(), 29), "yyyy-MM-dd");
+  const dailyTo = today;
+  // Balance is plotted as one point per period across the whole range — clamp
+  // to today so it never draws a flat line through days that haven't happened
+  // yet (e.g. "This month" spans to month-end, which is often still future).
+  const balanceTo = to > today ? today : to;
+
+  const [profile, breakdown, trend, balanceTrend, dailyExpenses] = await Promise.all([
+    getProfile(),
+    getCategoryBreakdown(from, to, breakdownType),
+    getIncomeExpenseTrend(from, to, granularity),
+    getBalanceTrend(from, balanceTo, granularity),
+    getDailyExpenses(dailyFrom, dailyTo),
+  ]);
+
+  const currency = profile?.currency ?? "BDT";
+
+  return (
+    <div className="flex flex-col gap-4">
+      <h1 className="text-2xl font-semibold tracking-tight">Reports</h1>
+
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {PRESETS.map((p) => {
+          const active = rangeKey === p.key;
+          const href =
+            p.key === "custom"
+              ? `/reports?range=custom&catType=${breakdownType}&from=${from}&to=${to}`
+              : `/reports?range=${p.key}&catType=${breakdownType}`;
+          return (
+            <Link
+              key={p.key}
+              href={href}
+              className={cn(
+                "shrink-0 rounded-full border px-3 py-1.5 text-sm transition-colors",
+                active
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {p.label}
+            </Link>
+          );
+        })}
+      </div>
+
+      {rangeKey === "custom" && (
+        <CustomDateRangePicker catType={breakdownType} initialFrom={from} initialTo={to} />
+      )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Daily expenses</CardTitle>
+          <p className="text-xs text-muted-foreground">Last 30 days — independent of the filter above</p>
+        </CardHeader>
+        <CardContent>
+          <DailyExpenseChart data={dailyExpenses} currency={currency} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Balance over time</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <BalanceTrendChart data={balanceTrend} currency={currency} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Income vs. expense</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <TrendChart data={trend} currency={currency} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex-row items-center justify-between">
+          <CardTitle className="text-base">
+            {breakdownType === "expense" ? "Spending" : "Income"} by category
+          </CardTitle>
+          <div className="flex gap-1 rounded-lg bg-muted p-0.5">
+            {(["expense", "income"] as const).map((t) => (
+              <Link
+                key={t}
+                href={
+                  rangeKey === "custom"
+                    ? `/reports?range=custom&catType=${t}&from=${from}&to=${to}`
+                    : `/reports?range=${rangeKey}&catType=${t}`
+                }
+                className={cn(
+                  "rounded-md px-2.5 py-1 text-xs font-medium capitalize transition-colors",
+                  breakdownType === t
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground",
+                )}
+              >
+                {t}
+              </Link>
+            ))}
+          </div>
+        </CardHeader>
+        <CardContent>
+          <CategoryBreakdownChart
+            data={breakdown}
+            currency={currency}
+            emptyMessage={`No ${breakdownType} transactions in this period.`}
+          />
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

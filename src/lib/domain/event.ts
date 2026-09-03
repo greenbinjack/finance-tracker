@@ -1,0 +1,75 @@
+export interface EventBudgetStatus {
+  spent: number;
+  budget: number | null;
+  remaining: number | null;
+  percentUsed: number | null;
+  isOverBudget: boolean;
+}
+
+/** Budget vs. spend for an event/trip. Percent and remaining are null when no budget was set. */
+export function computeEventBudgetStatus(spent: number, budget: number | null): EventBudgetStatus {
+  if (budget === null || budget === 0) {
+    return { spent, budget, remaining: null, percentUsed: null, isOverBudget: false };
+  }
+  const remaining = budget - spent;
+  return {
+    spent,
+    budget,
+    remaining,
+    percentUsed: (spent / budget) * 100,
+    isOverBudget: spent > budget,
+  };
+}
+
+/**
+ * A scheduled item's planned amount can never drop below what's already
+ * been fulfilled against it (real transactions linked to it) — otherwise
+ * "remaining" would go negative, which is meaningless for a plan that's
+ * already been more than fulfilled at that new, lower amount.
+ */
+export function canReduceScheduledAmount(newAmount: number, fulfilledSoFar: number): boolean {
+  return newAmount >= fulfilledSoFar;
+}
+
+/**
+ * A scheduled item's type (expense vs. income) can't change once it has any
+ * fulfillment — those linked transactions already recorded their own type,
+ * so flipping the plan's type afterward would leave it describing something
+ * different from what was actually paid/received against it.
+ */
+export function canChangeScheduledType(fulfilledSoFar: number): boolean {
+  return fulfilledSoFar === 0;
+}
+
+/**
+ * A trip transaction should count toward the user's own real transaction
+ * history/dashboard only when it's genuinely the user's own money: given by
+ * "Myself" (paidByParticipantId null) AND not external funding. Given by a
+ * participant, or external, means the money never actually came out of (or
+ * into) the user's own pocket.
+ */
+export function isOwnMoney(paidByParticipantId: string | null, isExternal: boolean): boolean {
+  return paidByParticipantId === null && !isExternal;
+}
+
+/**
+ * "Total journey money" = every real transaction tagged to the trip so far
+ * (any type, any giver — Myself, a participant, or external funding all
+ * count here) plus what's still planned but not yet realized. Deliberately
+ * takes the raw transaction list rather than the balance table's per-
+ * participant totals: the balance table excludes external contributions
+ * (they're not part of anyone's split), but this total must still include
+ * them — otherwise "total journey money" could read lower than "already
+ * expended", which makes no sense. Uses each scheduled item's `remaining`
+ * rather than its full planned amount — once a plan is (partially)
+ * fulfilled, that portion is already counted via its linked transaction, so
+ * adding the full planned amount too would double-count it.
+ */
+export function computeTotalJourneyMoney(
+  transactions: { amount: number }[],
+  scheduledItems: { remaining: number }[],
+): number {
+  const totalActualGiven = transactions.reduce((sum, t) => sum + t.amount, 0);
+  const totalScheduledRemaining = scheduledItems.reduce((sum, item) => sum + item.remaining, 0);
+  return totalActualGiven + totalScheduledRemaining;
+}
