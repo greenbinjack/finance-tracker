@@ -46,6 +46,15 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
 
 Both values are on your Supabase project's **Settings → API** page.
 
+Optionally, for production error monitoring, add a [Sentry](https://sentry.io) project's DSN:
+
+```bash
+SENTRY_DSN=your-sentry-dsn
+NEXT_PUBLIC_SENTRY_DSN=your-sentry-dsn
+```
+
+Error monitoring is fully wired but inert without these — nothing is sent anywhere until they're set.
+
 ### 4. Run the dev server
 
 ```bash
