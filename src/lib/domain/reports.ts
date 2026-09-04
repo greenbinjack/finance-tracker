@@ -173,16 +173,21 @@ export interface BalancePoint {
  * rather than resetting to 0 at the start of whatever range is selected.
  * Every period in [rangeFrom, rangeTo] gets a point — periods with no
  * transactions carry forward the last known balance, so the line has no gaps.
+ * `baseBalance` is the opening balance of whichever account(s) this trend is
+ * scoped to (summed, if more than one) — without it the line would start at
+ * 0 instead of at the balance the account(s) actually held before any
+ * transaction here.
  */
 export function buildBalanceTrend(
   allRows: TrendInput[],
   granularity: Granularity,
   rangeFrom: string,
   rangeTo: string,
+  baseBalance = 0,
 ): BalancePoint[] {
   const sorted = [...allRows].sort((a, b) => a.occurredOn.localeCompare(b.occurredOn));
 
-  let startingBalance = 0;
+  let startingBalance = baseBalance;
   const inRange: TrendInput[] = [];
   for (const row of sorted) {
     if (row.occurredOn < rangeFrom) {

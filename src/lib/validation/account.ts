@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const accountTypes = ["cash", "bank", "card", "mobile_wallet", "other"] as const;
+export const accountTypes = ["cash", "bank", "card", "mobile_wallet", "brokerage", "other"] as const;
 export type AccountTypeValue = (typeof accountTypes)[number];
 
 export const accountSchema = z.object({
@@ -11,6 +11,10 @@ export const accountSchema = z.object({
   card_number: z.string().max(32).optional(),
   branch_name: z.string().max(160).optional(),
   branch_address: z.string().max(280).optional(),
+  /** What the account already held before you started logging transactions
+   * here — e.g. existing bank balance, or a brokerage account's ledger
+   * balance. Defaults to 0 (a fresh account). */
+  opening_balance: z.coerce.number().default(0),
 });
 
 export type AccountInput = z.infer<typeof accountSchema>;

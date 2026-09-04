@@ -22,7 +22,7 @@ interface DashboardRpcResult {
   profile: Database["public"]["Tables"]["profiles"]["Row"] | null;
   month_transactions: { type: "expense" | "income"; amount: number }[];
   recent_transactions: TransactionRowData[];
-  balance_accounts: { id: string; name: string }[];
+  balance_accounts: { id: string; name: string; opening_balance: number }[];
   balance_transactions: {
     account_id: string | null;
     to_account_id: string | null;
@@ -67,7 +67,7 @@ export async function getDashboardData(monthStart: string, monthEnd: string) {
   );
 
   const balances = computeAccountBalances(
-    result.balance_accounts,
+    result.balance_accounts.map((a) => ({ id: a.id, name: a.name, openingBalance: Number(a.opening_balance) })),
     result.balance_transactions.map((tx) => ({
       accountId: tx.account_id,
       toAccountId: tx.to_account_id,

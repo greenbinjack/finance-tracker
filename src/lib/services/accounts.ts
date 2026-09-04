@@ -136,7 +136,7 @@ export async function getAccountBalances() {
   const supabase = await createClient();
   const [{ data: accounts, error: accountsError }, { data: transactions, error: txError }] =
     await Promise.all([
-      supabase.from("accounts").select("id, name").order("name"),
+      supabase.from("accounts").select("id, name, opening_balance").order("name"),
       supabase
         .from("transactions")
         .select("account_id, to_account_id, type, amount")
@@ -146,7 +146,7 @@ export async function getAccountBalances() {
   if (txError) throw txError;
 
   return computeAccountBalances(
-    accounts,
+    accounts.map((a) => ({ id: a.id, name: a.name, openingBalance: Number(a.opening_balance) })),
     transactions.map((tx) => ({
       accountId: tx.account_id,
       toAccountId: tx.to_account_id,

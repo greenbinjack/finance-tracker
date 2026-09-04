@@ -196,6 +196,17 @@ describe("buildBalanceTrend", () => {
     const result = buildBalanceTrend(rows, "day", "2026-09-01", "2026-09-02");
     expect(result.every((r) => r.balance === 100)).toBe(true);
   });
+
+  it("starts the line from a nonzero opening balance instead of zero", () => {
+    const result = buildBalanceTrend([], "day", "2026-09-01", "2026-09-02", 50000);
+    expect(result.every((r) => r.balance === 50000)).toBe(true);
+  });
+
+  it("adds transaction history on top of the opening balance, not in place of it", () => {
+    const rows = [{ occurredOn: "2026-09-01", type: "expense" as const, amount: 12000 }];
+    const result = buildBalanceTrend(rows, "day", "2026-09-01", "2026-09-01", 50000);
+    expect(result[0].balance).toBe(38000);
+  });
 });
 
 describe("buildDailyExpenseSeries", () => {

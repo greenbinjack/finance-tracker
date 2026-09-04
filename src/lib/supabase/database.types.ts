@@ -6,7 +6,7 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export type TransactionType = "expense" | "income";
 /** transactions.type is wider than TransactionType — categories/scheduled items are never "transfer". */
 export type TransactionKind = TransactionType | "transfer";
-export type AccountType = "cash" | "bank" | "card" | "mobile_wallet" | "other";
+export type AccountType = "cash" | "bank" | "card" | "mobile_wallet" | "brokerage" | "other";
 export type InvestmentType = string;
 export type LoanDirection = "given" | "taken";
 export type LoanStatus = "open" | "partly_paid" | "settled";
@@ -45,6 +45,7 @@ export interface Database {
           card_number: string | null;
           branch_name: string | null;
           branch_address: string | null;
+          opening_balance: number;
           sort_order: number;
           is_primary: boolean;
           created_at: string;
@@ -59,6 +60,7 @@ export interface Database {
           card_number?: string | null;
           branch_name?: string | null;
           branch_address?: string | null;
+          opening_balance?: number;
           sort_order?: number;
           is_primary?: boolean;
           created_at?: string;

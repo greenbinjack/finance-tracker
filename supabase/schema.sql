@@ -40,7 +40,7 @@ create table if not exists accounts (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users (id) on delete cascade,
   name text not null,
-  account_type text not null default 'cash' check (account_type in ('cash', 'bank', 'card', 'mobile_wallet', 'other')),
+  account_type text not null default 'cash' check (account_type in ('cash', 'bank', 'card', 'mobile_wallet', 'brokerage', 'other')),
   institution_name text,
   account_number text,
   card_number text,
@@ -55,6 +55,20 @@ create index if not exists accounts_user_id_idx on accounts (user_id);
 alter table accounts add column if not exists sort_order integer not null default 0;
 alter table accounts add column if not exists is_primary boolean not null default false;
 create unique index if not exists accounts_one_primary_per_user on accounts (user_id) where is_primary;
+
+-- "brokerage" covers a stock-exchange trading/ledger account (e.g. a DSE BO
+-- account) — its cash figure is called a "ledger balance" in that domain,
+-- but it's the same underlying concept as opening_balance below.
+alter table accounts drop constraint if exists accounts_account_type_check;
+alter table accounts add constraint accounts_account_type_check
+  check (account_type in ('cash', 'bank', 'card', 'mobile_wallet', 'brokerage', 'other'));
+
+-- The balance the account started at before any transactions were logged in
+-- this app — e.g. what was already in your bank account, or a brokerage
+-- account's settled ledger balance, the day you started using this app.
+-- computeAccountBalances() adds this to the sum of the account's
+-- transactions rather than starting every account's running total at 0.
+alter table accounts add column if not exists opening_balance numeric(14, 2) not null default 0;
 
 -- ============================================================
 -- categories: user-editable expense/income categories
@@ -648,7 +662,10 @@ as $$
       ) x
     ),
     'balance_accounts', (
-      select coalesce(jsonb_agg(jsonb_build_object('id', a.id, 'name', a.name) order by a.name asc), '[]'::jsonb)
+      select coalesce(
+        jsonb_agg(jsonb_build_object('id', a.id, 'name', a.name, 'opening_balance', a.opening_balance) order by a.name asc),
+        '[]'::jsonb
+      )
       from accounts a
     ),
     'balance_transactions', (

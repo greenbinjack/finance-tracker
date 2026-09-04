@@ -13,16 +13,19 @@ export interface AccountTransactionInput {
 }
 
 /**
- * All-time running balance per account (income minus expense, transfers
- * moved between two), plus whatever's tagged to no account at all, plus the
- * grand total across both. This is "how much money do I actually have" —
- * distinct from the dashboard's monthly income/expense summary. A transfer
- * always nets to zero across the total (it leaves one account and enters
- * another of the same user's), unlike expense/income which each move the
- * total.
+ * All-time running balance per account (opening balance, plus income minus
+ * expense, plus transfers moved between two), plus whatever's tagged to no
+ * account at all, plus the grand total across both. This is "how much money
+ * do I actually have" — distinct from the dashboard's monthly income/expense
+ * summary. A transfer always nets to zero across the total (it leaves one
+ * account and enters another of the same user's), unlike expense/income
+ * which each move the total. Opening balance is what the account already
+ * held before any transactions were logged here (e.g. what was already in a
+ * bank account, or a brokerage account's ledger balance) — without it, an
+ * account you didn't start from zero would show a wrong running total.
  */
 export function computeAccountBalances(
-  accounts: { id: string; name: string }[],
+  accounts: { id: string; name: string; openingBalance?: number }[],
   transactions: AccountTransactionInput[],
 ): { accounts: AccountBalance[]; unassigned: number; total: number } {
   const balances = new Map<string, number>();
@@ -49,7 +52,7 @@ export function computeAccountBalances(
   const perAccount: AccountBalance[] = accounts.map((a) => ({
     id: a.id,
     name: a.name,
-    balance: balances.get(a.id) ?? 0,
+    balance: (a.openingBalance ?? 0) + (balances.get(a.id) ?? 0),
   }));
 
   const total = perAccount.reduce((sum, a) => sum + a.balance, 0) + unassigned;

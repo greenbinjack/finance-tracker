@@ -57,6 +57,7 @@ Finance - Google Play package/
 supabase/CHANGELOG.md
 supabase/add-remaining-features.sql
 supabase/add-dashboard-function.sql
+supabase/add-opening-balance.sql
 AGENTS.md
 CLAUDE.md
 .claude/

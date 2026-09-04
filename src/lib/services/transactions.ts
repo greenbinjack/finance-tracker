@@ -351,6 +351,19 @@ export async function getBalanceTrend(
   if (filters.accountId) query = query.eq("account_id", filters.accountId);
   if (filters.eventId) query = query.eq("event_id", filters.eventId);
 
+  // A trip filter isn't "one account's balance" — it's transactions tagged
+  // to that event only, a different kind of view an opening balance doesn't
+  // apply to. Otherwise, base the running line on the real opening
+  // balance(s): the one account's if filtered, or every account's summed.
+  let baseBalance = 0;
+  if (!filters.eventId) {
+    let accountsQuery = supabase.from("accounts").select("opening_balance");
+    if (filters.accountId) accountsQuery = accountsQuery.eq("id", filters.accountId);
+    const { data: accountsData, error: accountsError } = await accountsQuery;
+    if (accountsError) throw accountsError;
+    baseBalance = accountsData.reduce((sum, a) => sum + Number(a.opening_balance), 0);
+  }
+
   const { data, error } = await query;
 
   if (error) throw error;
@@ -364,6 +377,7 @@ export async function getBalanceTrend(
     granularity,
     from,
     to,
+    baseBalance,
   );
 }
 

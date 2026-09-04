@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { Landmark, Trash2, Wallet, CreditCard, Smartphone, MoreHorizontal } from "lucide-react";
+import { Landmark, Trash2, Wallet, CreditCard, Smartphone, MoreHorizontal, LineChart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -35,6 +35,7 @@ export const ACCOUNT_TYPE_LABELS: Record<AccountTypeValue, string> = {
   bank: "Bank account",
   card: "Debit/credit card",
   mobile_wallet: "Mobile wallet",
+  brokerage: "Brokerage / investment",
   other: "Other",
 };
 
@@ -43,6 +44,7 @@ export const ACCOUNT_TYPE_ICONS: Record<AccountTypeValue, typeof Wallet> = {
   bank: Landmark,
   card: CreditCard,
   mobile_wallet: Smartphone,
+  brokerage: LineChart,
   other: MoreHorizontal,
 };
 
@@ -55,6 +57,7 @@ export interface AccountRecord {
   card_number: string | null;
   branch_name: string | null;
   branch_address: string | null;
+  opening_balance: number;
   is_primary: boolean;
   sort_order: number;
 }
@@ -76,6 +79,7 @@ export function AccountDialog({
   const [cardNumber, setCardNumber] = useState(existing?.card_number ?? "");
   const [branchName, setBranchName] = useState(existing?.branch_name ?? "");
   const [branchAddress, setBranchAddress] = useState(existing?.branch_address ?? "");
+  const [openingBalance, setOpeningBalance] = useState(String(existing?.opening_balance ?? 0));
   const [isPending, startTransition] = useTransition();
 
   function resetToExisting() {
@@ -86,6 +90,7 @@ export function AccountDialog({
     setCardNumber(existing?.card_number ?? "");
     setBranchName(existing?.branch_name ?? "");
     setBranchAddress(existing?.branch_address ?? "");
+    setOpeningBalance(String(existing?.opening_balance ?? 0));
   }
 
   function buildInput(): AccountInput | null {
@@ -102,6 +107,7 @@ export function AccountDialog({
       card_number: cardNumber || undefined,
       branch_name: branchName || undefined,
       branch_address: branchAddress || undefined,
+      opening_balance: openingBalance === "" ? 0 : Number(openingBalance),
     };
   }
 
@@ -137,9 +143,10 @@ export function AccountDialog({
   }
 
   const showInstitutionFields = accountType !== "cash" && accountType !== "other";
-  const showAccountNumber = accountType === "bank" || accountType === "mobile_wallet";
+  const showAccountNumber = accountType === "bank" || accountType === "mobile_wallet" || accountType === "brokerage";
   const showCardNumber = accountType === "card";
   const showBranch = accountType === "bank";
+  const balanceLabel = accountType === "brokerage" ? "Ledger balance" : "Opening balance";
 
   return (
     <Dialog
@@ -186,11 +193,21 @@ export function AccountDialog({
         {showInstitutionFields && (
           <div className="flex flex-col gap-2">
             <Label htmlFor="account-institution">
-              {accountType === "mobile_wallet" ? "Provider" : "Bank name"}
+              {accountType === "mobile_wallet"
+                ? "Provider"
+                : accountType === "brokerage"
+                  ? "Broker name"
+                  : "Bank name"}
             </Label>
             <Input
               id="account-institution"
-              placeholder={accountType === "mobile_wallet" ? "e.g. bKash" : "e.g. Dutch-Bangla Bank"}
+              placeholder={
+                accountType === "mobile_wallet"
+                  ? "e.g. bKash"
+                  : accountType === "brokerage"
+                    ? "e.g. AB & Co."
+                    : "e.g. Dutch-Bangla Bank"
+              }
               value={institutionName}
               onChange={(e) => setInstitutionName(e.target.value)}
             />
@@ -200,7 +217,11 @@ export function AccountDialog({
         {showAccountNumber && (
           <div className="flex flex-col gap-2">
             <Label htmlFor="account-number">
-              {accountType === "mobile_wallet" ? "Wallet number" : "Account number"}
+              {accountType === "mobile_wallet"
+                ? "Wallet number"
+                : accountType === "brokerage"
+                  ? "BO account number"
+                  : "Account number"}
             </Label>
             <Input
               id="account-number"
@@ -209,6 +230,24 @@ export function AccountDialog({
             />
           </div>
         )}
+
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="account-opening-balance">{balanceLabel}</Label>
+          <Input
+            id="account-opening-balance"
+            type="number"
+            inputMode="decimal"
+            step="0.01"
+            placeholder="0.00"
+            value={openingBalance}
+            onChange={(e) => setOpeningBalance(e.target.value)}
+          />
+          <p className="text-xs text-muted-foreground">
+            {accountType === "brokerage"
+              ? "The settled cash balance in this account right now, before any transactions you log here."
+              : "What this account already held before you started tracking it here. Leave as 0 for a fresh account."}
+          </p>
+        </div>
 
         {showCardNumber && (
           <div className="flex flex-col gap-2">

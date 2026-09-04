@@ -96,4 +96,32 @@ describe("computeAccountBalances", () => {
     expect(result.unassigned).toBe(300);
     expect(result.total).toBe(1000);
   });
+
+  it("adds an account's opening balance on top of its transactions", () => {
+    const result = computeAccountBalances(
+      [{ id: "dse", name: "DSE Trading", openingBalance: 50000 }],
+      [{ accountId: "dse", type: "expense", amount: 12000 }],
+    );
+    expect(result.accounts).toEqual([{ id: "dse", name: "DSE Trading", balance: 38000 }]);
+    expect(result.total).toBe(38000);
+  });
+
+  it("treats a missing openingBalance as 0, same as before this field existed", () => {
+    const result = computeAccountBalances(
+      [{ id: "cash", name: "Cash" }],
+      [{ accountId: "cash", type: "income", amount: 500 }],
+    );
+    expect(result.accounts[0].balance).toBe(500);
+  });
+
+  it("includes every account's opening balance in the grand total", () => {
+    const result = computeAccountBalances(
+      [
+        { id: "cash", name: "Cash", openingBalance: 1000 },
+        { id: "dse", name: "DSE Trading", openingBalance: 50000 },
+      ],
+      [],
+    );
+    expect(result.total).toBe(51000);
+  });
 });
