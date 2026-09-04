@@ -49,15 +49,11 @@ next-env.d.ts
 
 # internal working notes — not part of the app
 design/
+notes/
 _apk_check/
 Finance-Tracker.apk
 Finance - Google Play package.zip
 Finance - Google Play package/
-AGENT_LOG.md
-app-audit.md
-instructions.md
-implementation.md
-learning-1.md
 supabase/CHANGELOG.md
 supabase/add-remaining-features.sql
 supabase/add-dashboard-function.sql
